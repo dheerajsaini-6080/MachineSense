@@ -1,0 +1,6 @@
+requirements.txt
+manage.py
+assistant/
+echocall/
+db.sqlite3
+run_dashboard.bat

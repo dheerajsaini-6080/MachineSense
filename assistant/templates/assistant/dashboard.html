@@ -1,0 +1,374 @@
+{% extends 'assistant/base.html' %}
+
+{% block title %}Dashboard - EchoCall AI Voice Assistant{% endblock %}
+
+{% block content %}
+
+<!-- Top Alert Banner if API credentials are not configured yet -->
+{% if not config.twilio_account_sid and not config.retell_api_key and not config.vapi_api_key %}
+<div class="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl">
+    <div class="flex items-center gap-3">
+        <i class="fa-solid fa-triangle-exclamation text-lg text-amber-400 shrink-0"></i>
+        <div>
+            <span class="font-bold text-white text-sm block">Real Mobile Phone Calling Setup Required</span>
+            <span>To make actual calls to your mobile phone, click "Configure Telephony Keys" to enter your Twilio, Retell, or Vapi API credentials.</span>
+        </div>
+    </div>
+    <button onclick="openConfigModal()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 shadow-md">
+        <i class="fa-solid fa-key me-1"></i> Configure Telephony Keys
+    </button>
+</div>
+{% endif %}
+
+<!-- KPI Statistics Overview Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="glass-card glass-card-interactive p-5 rounded-2xl relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Calls Made</span>
+            <div class="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                <i class="fa-solid fa-phone-volume text-base"></i>
+            </div>
+        </div>
+        <div class="flex items-baseline justify-between">
+            <span class="text-3xl font-extrabold text-white tracking-tight">{{ total_calls }}</span>
+            <span class="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <i class="fa-solid fa-database"></i> Django DB
+            </span>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Call logs stored in SQLite</p>
+    </div>
+
+    <div class="glass-card glass-card-interactive p-5 rounded-2xl relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Completion Rate</span>
+            <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <i class="fa-solid fa-circle-check text-base"></i>
+            </div>
+        </div>
+        <div class="flex items-baseline justify-between">
+            <span class="text-3xl font-extrabold text-white tracking-tight">{{ success_rate }}%</span>
+            <span class="text-xs text-emerald-400 font-medium">High reliability</span>
+        </div>
+        <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div class="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full rounded-full" style="width: {{ success_rate }}%"></div>
+        </div>
+    </div>
+
+    <div class="glass-card glass-card-interactive p-5 rounded-2xl relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Positive Sentiment</span>
+            <div class="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                <i class="fa-solid fa-chart-line text-base"></i>
+            </div>
+        </div>
+        <div class="flex items-baseline justify-between">
+            <span class="text-3xl font-extrabold text-white tracking-tight">{{ positive_rate }}%</span>
+            <span class="text-xs text-purple-300 font-medium">Customer Satisfaction</span>
+        </div>
+        <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div class="bg-gradient-to-r from-purple-500 to-indigo-400 h-full rounded-full" style="width: {{ positive_rate }}%"></div>
+        </div>
+    </div>
+
+    <div class="glass-card glass-card-interactive p-5 rounded-2xl relative overflow-hidden group">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Scheduled Timers</span>
+            <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                <i class="fa-regular fa-clock text-base"></i>
+            </div>
+        </div>
+        <div class="flex items-baseline justify-between">
+            <span class="text-3xl font-extrabold text-white tracking-tight">{{ pending_schedules }}</span>
+            <span class="text-xs text-amber-300 font-medium">Automated triggers</span>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Active queue items</p>
+    </div>
+</div>
+
+<!-- Campaign Scenarios & Mobile Call Launcher -->
+<div class="mb-10">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div>
+            <h2 class="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                <i class="fa-solid fa-robot text-cyan-400"></i>
+                <span>Retell AI, Twilio & Vapi Calling Campaigns</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Select a scenario to dispatch an automated AI voice call directly to your mobile phone</p>
+        </div>
+
+        <button onclick="openConfigModal()" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 text-xs font-semibold transition self-start sm:self-auto">
+            <i class="fa-solid fa-key"></i> Telephony Keys Settings
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {% for sc in scenarios %}
+            <div class="glass-card glass-card-interactive p-5 rounded-2xl flex flex-col justify-between border border-slate-800 hover:border-cyan-500/40">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                            <i class="fa-solid fa-mobile-retro text-lg"></i>
+                        </div>
+                        <span class="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                            {{ sc.category }}
+                        </span>
+                    </div>
+                    <h3 class="font-bold text-white text-base leading-snug">{{ sc.title }}</h3>
+                    <p class="text-xs text-slate-400 mt-2 line-clamp-2">{{ sc.description }}</p>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-800/60 space-y-1.5 text-xs text-slate-400">
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Recipient:</span>
+                        <span class="font-semibold text-slate-200">{{ sc.recipient_name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Questions:</span>
+                        <span class="font-mono text-cyan-400">{{ sc.questions.count }} Spoken Questions</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 flex items-center gap-2">
+                    <button onclick="openCallModal({{ sc.id }}, '{{ sc.title|escapejs }}', '{{ sc.recipient_name|escapejs }}', '{{ sc.phone_number|escapejs }}')" class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition active:scale-95 shadow-md shadow-cyan-500/20">
+                        <i class="fa-solid fa-phone"></i>
+                        <span>Call Mobile</span>
+                    </button>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Real-time Call Logs & Transcript Table -->
+<div class="glass-card rounded-3xl p-6 border border-slate-800 shadow-2xl">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+        <div>
+            <h2 class="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                <i class="fa-solid fa-comments text-cyan-400"></i>
+                <span>Django DB Call Logs & Extracted Answers</span>
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Stored call records, transcripts, and sentiment analysis</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="{% url 'export_csv' %}" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition">
+                <i class="fa-solid fa-file-csv text-emerald-400"></i> Export CSV
+            </a>
+            <a href="{% url 'export_json' %}" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition">
+                <i class="fa-solid fa-file-code text-cyan-400"></i> Export JSON
+            </a>
+            {% if logs %}
+                <a href="{% url 'clear_logs' %}" onclick="return confirm('Clear all call logs from database?')" class="p-2 rounded-xl bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-400 border border-slate-700 text-xs transition" title="Clear Logs">
+                    <i class="fa-solid fa-trash-can"></i>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300 border-collapse">
+            <thead>
+                <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
+                    <th class="py-3 px-4">Timestamp</th>
+                    <th class="py-3 px-4">Campaign / Recipient</th>
+                    <th class="py-3 px-4">Engine</th>
+                    <th class="py-3 px-4">Extracted Responses</th>
+                    <th class="py-3 px-4">Sentiment</th>
+                    <th class="py-3 px-4 text-right">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60">
+                {% if not logs %}
+                    <tr>
+                        <td colSpan="6" class="py-10 text-center text-slate-500">
+                            No call logs stored in Django database yet. Click "Call Mobile" above to trigger your first voice call!
+                        </td>
+                    </tr>
+                {% else %}
+                    {% for log in logs %}
+                        <tr class="hover:bg-slate-800/30 transition">
+                            <td class="py-3.5 px-4 font-mono text-slate-400 whitespace-nowrap">
+                                {{ log.timestamp|date:"Y-m-d H:i" }}
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <div class="font-bold text-white">{{ log.title }}</div>
+                                <div class="text-[11px] text-slate-400 font-mono mt-0.5">{{ log.recipient_name }} ({{ log.phone_number }})</div>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 font-mono text-[11px] text-cyan-400">
+                                    {{ log.engine_used }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <div class="flex flex-wrap gap-1">
+                                    {% for key, val in log.extracted_data.items %}
+                                        <span class="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px]">
+                                            <span class="text-slate-500 font-mono">{{ key }}:</span>
+                                            <span class="font-semibold text-cyan-300">{{ val }}</span>
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="py-3.5 px-4">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                                    <i class="fa-solid fa-check"></i> {{ log.sentiment }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 text-right">
+                                <a href="{% url 'log_detail' log.id %}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
+                                    <i class="fa-solid fa-eye text-cyan-400"></i> Transcript
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Call Trigger Modal -->
+<div id="callModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="w-full max-w-md glass-card rounded-3xl border border-cyan-500/30 shadow-2xl p-6">
+        <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+                <i class="fa-solid fa-mobile-button text-cyan-400"></i> Dispatch Real Mobile Call
+            </h3>
+            <button onclick="closeCallModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <form action="{% url 'trigger_call' %}" method="POST" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <input type="hidden" name="scenario_id" id="modal_scenario_id">
+
+            <div>
+                <label class="block font-semibold text-slate-300 mb-1">Campaign</label>
+                <input type="text" id="modal_scenario_title" readonly class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-cyan-400 font-bold">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-300 mb-1">Recipient Name</label>
+                <input type="text" name="recipient_name" id="modal_recipient_name" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-300 mb-1">Mobile Phone Number to Dial *</label>
+                <input type="text" name="phone_number" id="modal_phone_number" required placeholder="+1 (555) 000-0000 or your mobile phone" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-300 mb-1">Voice AI Telephony Engine</label>
+                {{ trigger_form.engine }}
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeCallModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300">Cancel</button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold shadow-md shadow-cyan-500/20">
+                    <i class="fa-solid fa-phone me-1"></i> Initiate Call
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Telephony Config Keys Modal -->
+<div id="configModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="w-full max-w-xl glass-card rounded-3xl border border-amber-500/30 shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+                <i class="fa-solid fa-key text-amber-400"></i> Telephony API Credentials Settings
+            </h3>
+            <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <form action="{% url 'save_telephony_config' %}" method="POST" class="space-y-4 text-xs">
+            {% csrf_token %}
+
+            <!-- Twilio Credentials -->
+            <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+                <h4 class="font-bold text-cyan-400 flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-phone-volume"></i> Twilio Direct PSTN Calling (Recommended for instant real calls)
+                </h4>
+
+                <div>
+                    <label class="block text-slate-400 mb-1">Twilio Account SID</label>
+                    {{ config_form.twilio_account_sid }}
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Twilio Auth Token</label>
+                    {{ config_form.twilio_auth_token }}
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Twilio Phone Number (Purchased Number)</label>
+                    {{ config_form.twilio_phone_number }}
+                </div>
+            </div>
+
+            <!-- Retell AI Credentials -->
+            <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+                <h4 class="font-bold text-purple-400 flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-robot"></i> Retell Voice AI Credentials
+                </h4>
+
+                <div>
+                    <label class="block text-slate-400 mb-1">Retell API Key</label>
+                    {{ config_form.retell_api_key }}
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Retell Agent ID (Optional)</label>
+                    {{ config_form.retell_agent_id }}
+                </div>
+            </div>
+
+            <!-- Vapi AI Credentials -->
+            <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+                <h4 class="font-bold text-emerald-400 flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-bolt"></i> Vapi.ai Voice Credentials
+                </h4>
+
+                <div>
+                    <label class="block text-slate-400 mb-1">Vapi Private API Key</label>
+                    {{ config_form.vapi_api_key }}
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">Vapi Phone Number ID (Optional)</label>
+                    {{ config_form.vapi_phone_number_id }}
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
+                <button type="button" onclick="closeConfigModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300">Cancel</button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-md">
+                    <i class="fa-solid fa-save me-1"></i> Save Telephony Credentials
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openCallModal(id, title, recipient, phone) {
+        document.getElementById('modal_scenario_id').value = id;
+        document.getElementById('modal_scenario_title').value = title;
+        document.getElementById('modal_recipient_name').value = recipient;
+        document.getElementById('modal_phone_number').value = phone;
+        document.getElementById('callModal').classList.remove('hidden');
+    }
+
+    function closeCallModal() {
+        document.getElementById('callModal').classList.add('hidden');
+    }
+
+    function openConfigModal() {
+        document.getElementById('configModal').classList.remove('hidden');
+    }
+
+    function closeConfigModal() {
+        document.getElementById('configModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,2216 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MachineSense — AI Predictive Maintenance Dashboard</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Chart.js CDN for real-time telemetry -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              400: '#2dd4bf',
+              500: '#14b8a6',
+              600: '#0d9488',
+              900: '#134e4a',
+            },
+            dark: {
+              950: '#070a0f',
+              900: '#0b111a',
+              850: '#0f1724',
+              800: '#152132',
+              700: '#1e2f46',
+              600: '#2c4260',
+            },
+            status: {
+              normal: '#10b981',
+              warning: '#f59e0b',
+              critical: '#ef4444',
+              info: '#3b82f6',
+            }
+          },
+          animation: {
+            'pulse-subtle': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'radar': 'radarSweep 4s linear infinite',
+          },
+          keyframes: {
+            radarSweep: {
+              '0%': { transform: 'rotate(0deg)' },
+              '100%': { transform: 'rotate(360deg)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b111a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e2f46;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #2dd4bf;
+    }
+
+    /* Glow utilities */
+    .glow-cyan {
+      box-shadow: 0 0 20px -5px rgba(45, 212, 191, 0.25);
+    }
+    .glow-red {
+      box-shadow: 0 0 20px -5px rgba(239, 68, 68, 0.35);
+    }
+    .glow-amber {
+      box-shadow: 0 0 20px -5px rgba(245, 158, 11, 0.3);
+    }
+
+    /* Grid pattern background */
+    .cyber-grid {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+
+    /* Glass card */
+    .glass-card {
+      background: rgba(15, 23, 36, 0.78);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glass-card:hover {
+      border-color: rgba(45, 212, 191, 0.25);
+    }
+
+    /* Pipeline connector */
+    .pipeline-step::after {
+      content: '';
+      position: absolute;
+      right: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 2px;
+      background: #1e2f46;
+      z-index: 10;
+    }
+    .pipeline-step:last-child::after {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-dark-950 text-slate-200 font-sans min-h-screen cyber-grid flex flex-col selection:bg-brand-500 selection:text-dark-950">
+
+  <!-- ======================================================== -->
+  <!-- TOP NAVIGATION BAR -->
+  <!-- ======================================================== -->
+  <header class="sticky top-0 z-50 glass-card border-b border-dark-700/60 bg-dark-950/90 px-4 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <!-- Animated Brand Badge -->
+      <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 text-dark-950 shadow-lg shadow-brand-500/20 font-mono font-bold text-lg">
+        <svg class="w-6 h-6 text-dark-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        <span class="absolute -top-1 -right-1 flex h-3 w-3">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-brand-500"></span>
+        </span>
+      </div>
+
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            Machine<span class="text-brand-400">Sense</span>
+          </h1>
+          <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
+            PREDICTIVE MAINTENANCE v2.4
+          </span>
+        </div>
+        <p class="text-xs text-slate-400">
+          IoT Sensor Simulation • Mini-RAG • Prompt Synthesis • Claude Diagnostic Engine
+        </p>
+      </div>
+    </div>
+
+    <!-- Controls & Global Actions -->
+    <div class="flex items-center flex-wrap gap-2.5">
+      <!-- Simulation Status & Speed Controller -->
+      <div class="flex items-center bg-dark-900 border border-dark-700 rounded-lg p-1 text-xs font-mono">
+        <button id="simToggleBtn" onclick="toggleSimulation()" class="px-2.5 py-1 rounded-md bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 flex items-center gap-1.5 transition">
+          <span class="w-2 h-2 rounded-full bg-brand-400 animate-pulse"></span>
+          <span id="simStateText">SIMULATING</span>
+        </button>
+        <div class="h-4 w-[1px] bg-dark-700 mx-1"></div>
+        <button onclick="setSimSpeed(1)" id="spd1" class="px-2 py-1 rounded bg-dark-800 text-brand-400 font-semibold hover:text-white">1x</button>
+        <button onclick="setSimSpeed(2)" id="spd2" class="px-2 py-1 rounded text-slate-400 hover:text-white">2x</button>
+        <button onclick="setSimSpeed(5)" id="spd5" class="px-2 py-1 rounded text-slate-400 hover:text-white">5x</button>
+      </div>
+
+      <!-- Audio Alert Toggle -->
+      <button id="audioToggleBtn" onclick="toggleAudio()" class="px-3 py-1.5 rounded-lg bg-dark-900 border border-dark-700 text-xs font-mono text-slate-300 hover:border-slate-500 flex items-center gap-1.5 transition" title="Toggle audio alert beeps when anomalies occur">
+        <svg id="audioIcon" class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+        </svg>
+        <span id="audioLabel">AUDIO: OFF</span>
+      </button>
+
+      <!-- Cloud Mapping Anchor -->
+      <a href="#cloud-mapping" class="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-xs text-slate-200 flex items-center gap-1.5 transition">
+        <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 00-9.78 2.096A4.001 4.001 0 003 15z" />
+        </svg>
+        Cloud Mapping
+      </a>
+
+      <!-- API Settings Modal Button -->
+      <button onclick="openConfigModal()" class="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 border border-dark-700 text-xs text-slate-200 flex items-center gap-1.5 transition">
+        <svg class="w-4 h-4 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span id="apiIndicatorLabel">Claude API (Simulator)</span>
+      </button>
+
+      <!-- Print / Export Report -->
+      <button onclick="exportIncidentReport()" class="px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-dark-950 font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-brand-500/20 transition">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Export Report
+      </button>
+    </div>
+  </header>
+
+  <!-- ======================================================== -->
+  <!-- INTERNSHIP TOPIC MAPPING BANNER -->
+  <!-- ======================================================== -->
+  <section class="border-b border-dark-700/60 bg-dark-900/60 px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-2 text-slate-300">
+        <span class="px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 font-mono font-bold uppercase tracking-wider text-[11px] border border-brand-500/20">
+          Internship Project Showcase
+        </span>
+        <span class="text-slate-400 hidden sm:inline">•</span>
+        <span class="text-slate-300 font-medium hidden sm:inline">Five Core Pillars Directly Connected to Presentation Slides:</span>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+        <span class="px-2 py-1 rounded bg-dark-800 text-emerald-400 border border-emerald-500/30">1. IoT Telemetry Sim</span>
+        <span class="px-2 py-1 rounded bg-dark-800 text-cyan-400 border border-cyan-500/30">2. Miniature RAG</span>
+        <span class="px-2 py-1 rounded bg-dark-800 text-amber-400 border border-amber-500/30">3. Prompt Pipeline</span>
+        <span class="px-2 py-1 rounded bg-dark-800 text-indigo-400 border border-indigo-500/30">4. Claude Foundation Model</span>
+        <span class="px-2 py-1 rounded bg-dark-800 text-purple-400 border border-purple-500/30">5. IaaS/PaaS/MaaS Cloud</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== -->
+  <!-- MAIN WORKSPACE -->
+  <!-- ======================================================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-8">
+
+    <!-- FAULT INJECTION CONTROLLER (TOP ACTION BAR) -->
+    <section class="glass-card rounded-2xl p-4 lg:p-5 border border-dark-700/80">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono font-semibold text-brand-400 uppercase tracking-wider">Test Anomaly Scenarios</span>
+            <span id="activeFaultBadge" class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              STATUS: NOMINAL (NO FAULTS INJECTED)
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">
+            Simulate real-world industrial anomalies to trigger RAG document retrieval and AI foundation model diagnosis.
+          </p>
+        </div>
+
+        <!-- Anomaly Buttons -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="injectFault('bearing')" class="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-red-950/60 hover:text-red-300 hover:border-red-500/40 border border-dark-700 text-xs font-mono text-slate-300 transition flex items-center gap-1.5">
+            <span class="text-red-400">⚡</span> Bearing Wear (CNC Spindle)
+          </button>
+          <button onclick="injectFault('misalignment')" class="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-amber-950/60 hover:text-amber-300 hover:border-amber-500/40 border border-dark-700 text-xs font-mono text-slate-300 transition flex items-center gap-1.5">
+            <span class="text-amber-400">⚡</span> Shaft Misalignment (Conveyor)
+          </button>
+          <button onclick="injectFault('imbalance')" class="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-yellow-950/60 hover:text-yellow-300 hover:border-yellow-500/40 border border-dark-700 text-xs font-mono text-slate-300 transition flex items-center gap-1.5">
+            <span class="text-yellow-400">⚡</span> Dynamic Imbalance
+          </button>
+          <button onclick="injectFault('thermal')" class="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-orange-950/60 hover:text-orange-300 hover:border-orange-500/40 border border-dark-700 text-xs font-mono text-slate-300 transition flex items-center gap-1.5">
+            <span class="text-orange-400">⚡</span> Thermal Overload (Compressor)
+          </button>
+          <button onclick="injectFault('cavitation')" class="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-blue-950/60 hover:text-blue-300 hover:border-blue-500/40 border border-dark-700 text-xs font-mono text-slate-300 transition flex items-center gap-1.5">
+            <span class="text-blue-400">⚡</span> Pump Cavitation
+          </button>
+          <button onclick="resetFaults()" class="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-mono transition flex items-center gap-1.5 font-bold">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Normal Baseline (Reset)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SECTION 1: LIVE SENSOR SIMULATION (3 MACHINES) -->
+    <!-- ======================================================== -->
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+              <span class="text-brand-400 font-mono text-sm">01 //</span> Live Industrial Sensor Simulation
+            </h2>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              3 MACHINES STREAMING
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Brownian stochastic drift model running at 1000ms intervals with real ISO vibration threshold boundaries.
+          </p>
+        </div>
+        <div class="text-right text-xs font-mono text-slate-400 hidden sm:block">
+          <div>Telemetry Rate: <span class="text-brand-400 font-semibold" id="sampleRateLabel">1.0 Hz</span></div>
+          <div>Total Samples: <span class="text-slate-200" id="totalSamplesLabel">0</span></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- MACHINE 1: ROTARY SCREW AIR COMPRESSOR -->
+        <div id="card-compressor" class="glass-card rounded-2xl p-5 border border-dark-700 transition duration-300 relative overflow-hidden">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400" id="compressor-pulse"></span>
+                <h3 class="font-bold text-slate-100 text-sm">Atlas-75 Rotary Compressor</h3>
+              </div>
+              <p class="text-[11px] font-mono text-slate-400 mt-0.5">Asset ID: CMP-001 • Section A</p>
+            </div>
+            <span id="compressor-status-pill" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              HEALTHY
+            </span>
+          </div>
+
+          <!-- Gauges Grid -->
+          <div class="grid grid-cols-2 gap-3 my-4">
+            <!-- Temp -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Discharge Temp</span>
+                <span class="text-slate-500">Max 95°C</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="cmp-temp-val" class="text-xl font-mono font-bold text-slate-100">72.4</span>
+                <span class="text-xs font-mono text-slate-400">°C</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="cmp-temp-bar" class="bg-emerald-400 h-full rounded-full transition-all duration-500" style="width: 48%"></div>
+              </div>
+            </div>
+
+            <!-- Vibration -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Vibration RMS</span>
+                <span class="text-slate-500">ISO &lt; 4.5</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="cmp-vib-val" class="text-xl font-mono font-bold text-slate-100">1.82</span>
+                <span class="text-xs font-mono text-slate-400">mm/s</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="cmp-vib-bar" class="bg-emerald-400 h-full rounded-full transition-all duration-500" style="width: 25%"></div>
+              </div>
+            </div>
+
+            <!-- Pressure -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Line Pressure</span>
+                <span class="text-slate-500">Nom 7.5</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="cmp-press-val" class="text-xl font-mono font-bold text-slate-100">7.48</span>
+                <span class="text-xs font-mono text-slate-400">bar</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="cmp-press-bar" class="bg-brand-400 h-full rounded-full transition-all duration-500" style="width: 74%"></div>
+              </div>
+            </div>
+
+            <!-- RPM -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Motor Speed</span>
+                <span class="text-slate-500">3000 RPM</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="cmp-rpm-val" class="text-xl font-mono font-bold text-slate-100">2984</span>
+                <span class="text-xs font-mono text-slate-400">RPM</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="cmp-rpm-bar" class="bg-brand-400 h-full rounded-full transition-all duration-500" style="width: 82%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-time Sparkline Chart -->
+          <div class="h-28 w-full bg-dark-950/60 rounded-xl p-2 border border-dark-800">
+            <canvas id="chart-compressor"></canvas>
+          </div>
+
+          <!-- Quick Action -->
+          <button onclick="diagnoseMachine('compressor')" class="mt-3 w-full py-2 rounded-xl bg-dark-800 hover:bg-brand-500 hover:text-dark-950 text-xs font-mono font-semibold text-slate-300 border border-dark-700 hover:border-brand-400 transition flex items-center justify-center gap-2">
+            <span>✨ Diagnose with Claude</span>
+          </button>
+        </div>
+
+        <!-- MACHINE 2: HIGH-SPEED CNC MILLING SPINDLE -->
+        <div id="card-spindle" class="glass-card rounded-2xl p-5 border border-dark-700 transition duration-300 relative overflow-hidden">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400" id="spindle-pulse"></span>
+                <h3 class="font-bold text-slate-100 text-sm">5-Axis High-Speed CNC Spindle</h3>
+              </div>
+              <p class="text-[11px] font-mono text-slate-400 mt-0.5">Asset ID: CNC-SP4 • Bay 02</p>
+            </div>
+            <span id="spindle-status-pill" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              HEALTHY
+            </span>
+          </div>
+
+          <!-- Gauges Grid -->
+          <div class="grid grid-cols-2 gap-3 my-4">
+            <!-- Temp -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Front Bearing Temp</span>
+                <span class="text-slate-500">Max 70°C</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="spn-temp-val" class="text-xl font-mono font-bold text-slate-100">41.2</span>
+                <span class="text-xs font-mono text-slate-400">°C</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="spn-temp-bar" class="bg-emerald-400 h-full rounded-full transition-all duration-500" style="width: 32%"></div>
+              </div>
+            </div>
+
+            <!-- Vibration -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Radial Vibration</span>
+                <span class="text-slate-500">ISO &lt; 2.8</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="spn-vib-val" class="text-xl font-mono font-bold text-slate-100">1.15</span>
+                <span class="text-xs font-mono text-slate-400">mm/s</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="spn-vib-bar" class="bg-emerald-400 h-full rounded-full transition-all duration-500" style="width: 22%"></div>
+              </div>
+            </div>
+
+            <!-- RPM -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Spindle RPM</span>
+                <span class="text-slate-500">18K Max</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="spn-rpm-val" class="text-xl font-mono font-bold text-slate-100">15,020</span>
+                <span class="text-xs font-mono text-slate-400">RPM</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="spn-rpm-bar" class="bg-brand-400 h-full rounded-full transition-all duration-500" style="width: 83%"></div>
+              </div>
+            </div>
+
+            <!-- Kurtosis (Bearing defect factor) -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Acoustic Kurtosis</span>
+                <span class="text-slate-500">Norm ~3.0</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="spn-kurt-val" class="text-xl font-mono font-bold text-slate-100">3.04</span>
+                <span class="text-xs font-mono text-slate-400">K</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="spn-kurt-bar" class="bg-emerald-400 h-full rounded-full transition-all duration-500" style="width: 30%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-time Sparkline Chart -->
+          <div class="h-28 w-full bg-dark-950/60 rounded-xl p-2 border border-dark-800">
+            <canvas id="chart-spindle"></canvas>
+          </div>
+
+          <!-- Quick Action -->
+          <button onclick="diagnoseMachine('spindle')" class="mt-3 w-full py-2 rounded-xl bg-dark-800 hover:bg-brand-500 hover:text-dark-950 text-xs font-mono font-semibold text-slate-300 border border-dark-700 hover:border-brand-400 transition flex items-center justify-center gap-2">
+            <span>✨ Diagnose with Claude</span>
+          </button>
+        </div>
+
+        <!-- MACHINE 3: HEAVY-DUTY CONVEYOR DRIVE MOTOR -->
+        <div id="card-conveyor" class="glass-card rounded-2xl p-5 border border-dark-700 transition duration-300 relative overflow-hidden">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400" id="conveyor-pulse"></span>
+                <h3 class="font-bold text-slate-100 text-sm">Conveyor Induction Drive Motor</h3>
+              </div>
+              <p class="text-[11px] font-mono text-slate-400 mt-0.5">Asset ID: MOT-CONV2 • Line 3</p>
+            </div>
+            <span id="conveyor-status-pill" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              HEALTHY
+            </span>
+          </div>
+
+          <!-- Gauges Grid -->
+          <div class="grid grid-cols-2 gap-3 my-4">
+            <!-- Temp -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Winding Temp</span>
+                <span class="text-slate-500">Max 105°C</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="cnv-temp-val" class="text-xl font-mono font-bold text-slate-100">58.6</span>
+                <span class="text-xs font-mono text-slate-400">°C</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="cnv-temp-bar" class="bg-emerald-400 h-full rounded-full transition-all duration-500" style="width: 44%"></div>
+              </div>
+            </div>
+
+            <!-- Vibration -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Axial Vibration</span>
+                <span class="text-slate-500">ISO &lt; 3.5</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="cnv-vib-val" class="text-xl font-mono font-bold text-slate-100">1.94</span>
+                <span class="text-xs font-mono text-slate-400">mm/s</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="cnv-vib-bar" class="bg-emerald-400 h-full rounded-full transition-all duration-500" style="width: 28%"></div>
+              </div>
+            </div>
+
+            <!-- Current -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Current Draw</span>
+                <span class="text-slate-500">Max 45A</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="cnv-amp-val" class="text-xl font-mono font-bold text-slate-100">31.8</span>
+                <span class="text-xs font-mono text-slate-400">A</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="cnv-amp-bar" class="bg-brand-400 h-full rounded-full transition-all duration-500" style="width: 60%"></div>
+              </div>
+            </div>
+
+            <!-- RPM -->
+            <div class="bg-dark-900/90 rounded-xl p-3 border border-dark-800">
+              <div class="text-[10px] font-mono text-slate-400 uppercase flex items-center justify-between">
+                <span>Shaft RPM</span>
+                <span class="text-slate-500">1450 Sync</span>
+              </div>
+              <div class="flex items-baseline gap-1 mt-1">
+                <span id="cnv-rpm-val" class="text-xl font-mono font-bold text-slate-100">1448</span>
+                <span class="text-xs font-mono text-slate-400">RPM</span>
+              </div>
+              <div class="w-full bg-dark-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div id="cnv-rpm-bar" class="bg-brand-400 h-full rounded-full transition-all duration-500" style="width: 79%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-time Sparkline Chart -->
+          <div class="h-28 w-full bg-dark-950/60 rounded-xl p-2 border border-dark-800">
+            <canvas id="chart-conveyor"></canvas>
+          </div>
+
+          <!-- Quick Action -->
+          <button onclick="diagnoseMachine('conveyor')" class="mt-3 w-full py-2 rounded-xl bg-dark-800 hover:bg-brand-500 hover:text-dark-950 text-xs font-mono font-semibold text-slate-300 border border-dark-700 hover:border-brand-400 transition flex items-center justify-center gap-2">
+            <span>✨ Diagnose with Claude</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SECTION 2 & 3: RAG IN MINIATURE & PROMPT ENGINEERING PIPELINE -->
+    <!-- ======================================================== -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT COLUMN: PIPELINE INDICATOR & RAG MATCHER (7 cols) -->
+      <div class="lg:col-span-7 glass-card rounded-2xl p-5 border border-dark-700 space-y-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-bold text-white tracking-tight flex items-center gap-2">
+              <span class="text-cyan-400 font-mono text-sm">02 //</span>
+              Prompt Engineering & Mini-RAG Pipeline
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Live step-by-step assembly of real-time telemetry, semantic retrieval, and formatted Claude prompt.
+            </p>
+          </div>
+          <!-- Toggle Views -->
+          <div class="flex rounded-lg bg-dark-900 border border-dark-700 p-0.5 text-xs font-mono">
+            <button id="viewBtnPipeline" onclick="switchPromptView('pipeline')" class="px-2.5 py-1 rounded-md bg-brand-500/20 text-brand-400 font-semibold">
+              Pipeline Steps
+            </button>
+            <button id="viewBtnRaw" onclick="switchPromptView('raw')" class="px-2.5 py-1 rounded-md text-slate-400 hover:text-white">
+              Raw Payload
+            </button>
+          </div>
+        </div>
+
+        <!-- Visual Step-by-Step Flow Bar -->
+        <div class="grid grid-cols-4 gap-2 text-center text-xs font-mono pt-1">
+          <div class="bg-dark-900/90 rounded-lg p-2.5 border border-brand-500/30 text-brand-400 relative">
+            <div class="text-[10px] text-slate-500">STEP 1</div>
+            <div class="font-bold text-[11px] truncate">1. Telemetry Capture</div>
+            <div class="text-[10px] text-emerald-400 mt-0.5">Live Sensors</div>
+          </div>
+          <div class="bg-dark-900/90 rounded-lg p-2.5 border border-cyan-500/30 text-cyan-400">
+            <div class="text-[10px] text-slate-500">STEP 2</div>
+            <div class="font-bold text-[11px] truncate">2. Mini-RAG Match</div>
+            <div class="text-[10px] text-cyan-300 mt-0.5" id="ragMatchCount">2 SOPs Matched</div>
+          </div>
+          <div class="bg-dark-900/90 rounded-lg p-2.5 border border-amber-500/30 text-amber-400">
+            <div class="text-[10px] text-slate-500">STEP 3</div>
+            <div class="font-bold text-[11px] truncate">3. Prompt Assembly</div>
+            <div class="text-[10px] text-amber-300 mt-0.5" id="tokenEstimate">~380 Tokens</div>
+          </div>
+          <div class="bg-dark-900/90 rounded-lg p-2.5 border border-indigo-500/30 text-indigo-400">
+            <div class="text-[10px] text-slate-500">STEP 4</div>
+            <div class="font-bold text-[11px] truncate">4. Claude Inference</div>
+            <div class="text-[10px] text-indigo-300 mt-0.5">claude-3-5-sonnet</div>
+          </div>
+        </div>
+
+        <!-- PIPELINE STEPS DETAIL VIEW -->
+        <div id="pipelineContainer" class="space-y-4">
+
+          <!-- STAGE 1: Current Captured Telemetry Snapshot -->
+          <div class="bg-dark-900/80 rounded-xl p-3.5 border border-dark-700/80">
+            <div class="flex items-center justify-between text-xs font-mono mb-2">
+              <span class="text-brand-400 font-bold flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-brand-400"></span>
+                STAGE 1: Ingested Machine Snapshot
+              </span>
+              <span class="text-slate-500 text-[11px]" id="snapshotTimestamp">Active Target: CNC-SP4</span>
+            </div>
+            <div id="pipelineSnapshotContent" class="text-xs font-mono bg-dark-950 p-2.5 rounded-lg border border-dark-800 text-slate-300 overflow-x-auto leading-relaxed">
+              [Machine: CNC Spindle] Temp: 41.2°C | Vibration: 1.15 mm/s | Speed: 15,020 RPM | Kurtosis: 3.04 (All parameters within nominal operational envelopes)
+            </div>
+          </div>
+
+          <!-- STAGE 2: Mini-RAG Keyword Matching & Knowledge Base Extraction -->
+          <div class="bg-dark-900/80 rounded-xl p-3.5 border border-dark-700/80 space-y-2">
+            <div class="flex items-center justify-between text-xs font-mono">
+              <span class="text-cyan-400 font-bold flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                STAGE 2: Mini-RAG Semantic Keyword Matching
+              </span>
+              <button onclick="openKnowledgeBaseModal()" class="text-[11px] text-cyan-400 hover:underline">
+                Browse Full KB (5 SOPs) →
+              </button>
+            </div>
+            
+            <p class="text-[11px] text-slate-400">
+              Only SOP manuals matching tokens in the question and anomaly signals are filtered and injected:
+            </p>
+
+            <!-- Matched Documents Badges & Excerpts -->
+            <div id="ragMatchedCards" class="space-y-2 pt-1">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- STAGE 3: Final Prompt Structure Summary -->
+          <div class="bg-dark-900/80 rounded-xl p-3.5 border border-dark-700/80">
+            <div class="flex items-center justify-between text-xs font-mono mb-2">
+              <span class="text-amber-400 font-bold flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                STAGE 3: Prompt Template Assembly
+              </span>
+              <span class="text-[11px] text-slate-500">System Role + Context + RAG + Query</span>
+            </div>
+            <div class="text-[11px] font-mono text-slate-400 bg-dark-950 p-2.5 rounded-lg border border-dark-800 space-y-1">
+              <div><span class="text-indigo-400 font-bold">System:</span> "You are MachineSense, an expert ISO 10816 predictive maintenance diagnostic engineer..."</div>
+              <div><span class="text-emerald-400 font-bold">Context:</span> Live machine telemetry snapshot with drifting sensor trends</div>
+              <div><span class="text-cyan-400 font-bold">Retrieved SOPs:</span> Only matched domain documents injected as reference context</div>
+              <div><span class="text-amber-400 font-bold">User Query:</span> Specific diagnostic inquiry and risk assessment request</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RAW PROMPT PAYLOAD VIEW (Initially Hidden) -->
+        <div id="rawPromptContainer" class="hidden space-y-2">
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span class="text-slate-400">Exact JSON Payload dispatched to Claude Messages API:</span>
+            <button onclick="copyRawPrompt()" class="px-2 py-1 rounded bg-dark-800 text-brand-400 hover:bg-dark-700 text-[11px]">
+              Copy JSON
+            </button>
+          </div>
+          <pre id="rawPromptOutput" class="text-xs font-mono bg-dark-950 p-3 rounded-xl border border-dark-800 text-slate-300 overflow-x-auto max-h-96 leading-relaxed"></pre>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: CLAUDE FOUNDATION MODEL DIAGNOSTIC CONSOLE (5 cols) -->
+      <div class="lg:col-span-5 glass-card rounded-2xl p-5 border border-dark-700 flex flex-col justify-between space-y-4">
+        <div>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+              <h2 class="text-base font-bold text-white tracking-tight flex items-center gap-1.5">
+                <span class="text-indigo-400 font-mono text-sm">04 //</span> Claude API Diagnostics
+              </h2>
+            </div>
+            <span id="modelBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+              claude-3-5-sonnet
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Foundation model executes root cause analysis, ISO tolerance comparison, and remediation timeline.
+          </p>
+        </div>
+
+        <!-- Target Machine Selection & Presets -->
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-mono text-slate-400">Target Asset:</label>
+            <select id="diagnosticTargetSelect" onchange="onTargetMachineChange()" class="bg-dark-900 border border-dark-700 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-400 flex-1 font-mono">
+              <option value="spindle">CNC Milling Spindle (CNC-SP4)</option>
+              <option value="compressor">Rotary Screw Compressor (CMP-001)</option>
+              <option value="conveyor">Conveyor Drive Motor (MOT-CONV2)</option>
+            </select>
+          </div>
+
+          <!-- Suggested Prompt Pills -->
+          <div class="text-[11px] font-mono text-slate-400">Quick Queries:</div>
+          <div class="flex flex-wrap gap-1.5">
+            <button onclick="setQueryPreset('vibration')" class="text-[11px] px-2 py-1 rounded bg-dark-900 hover:bg-dark-800 text-slate-300 border border-dark-700">
+              🔍 Analyze Vibration Drift
+            </button>
+            <button onclick="setQueryPreset('bearing')" class="text-[11px] px-2 py-1 rounded bg-dark-900 hover:bg-dark-800 text-slate-300 border border-dark-700">
+              ⚙️ Check Bearing Degradation
+            </button>
+            <button onclick="setQueryPreset('overheat')" class="text-[11px] px-2 py-1 rounded bg-dark-900 hover:bg-dark-800 text-slate-300 border border-dark-700">
+              🔥 Thermal Risk & Shutdown Limit
+            </button>
+          </div>
+
+          <!-- Engineer Input Box -->
+          <div class="relative">
+            <textarea id="engineerPromptInput" rows="3" class="w-full bg-dark-900 border border-dark-700 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-400 font-mono resize-none leading-relaxed" placeholder="Type an engineering question or click quick queries above..."></textarea>
+          </div>
+
+          <!-- Run Button -->
+          <button id="runDiagnosticBtn" onclick="runClaudeDiagnosis()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 via-brand-500 to-cyan-500 hover:opacity-95 text-dark-950 font-bold text-xs font-mono shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition active:scale-[0.99]">
+            <svg id="runBtnSpinner" class="w-4 h-4 hidden animate-spin text-dark-950" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span id="runBtnText">🚀 Execute AI Foundation Model Diagnosis</span>
+          </button>
+        </div>
+
+        <!-- Diagnosis Output Terminal -->
+        <div class="flex-1 flex flex-col min-h-[260px] bg-dark-950 rounded-xl p-3.5 border border-dark-800 overflow-hidden">
+          <div class="flex items-center justify-between pb-2 border-b border-dark-800 text-[11px] font-mono">
+            <span class="text-slate-400 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400" id="aiStatusDot"></span>
+              <span id="aiTerminalHeader">READY FOR INFERENCE</span>
+            </span>
+            <span class="text-slate-500" id="inferenceStats">Latency: -- ms | Tokens: --</span>
+          </div>
+
+          <div id="diagnosticTerminalBody" class="flex-1 text-xs text-slate-300 font-sans overflow-y-auto pt-3 space-y-3 leading-relaxed">
+            <div class="text-slate-500 font-mono text-center py-8">
+              Click <strong class="text-slate-400">"Execute AI Foundation Model Diagnosis"</strong> above or inject an anomaly scenario to generate root cause analysis and corrective maintenance actions.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- SECTION 5: CLOUD COMPUTING ARCHITECTURE MAPPING -->
+    <!-- ======================================================== -->
+    <section id="cloud-mapping" class="glass-card rounded-2xl p-6 border border-dark-700 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-dark-700/80 pb-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-purple-400 font-mono text-sm font-bold">05 //</span>
+            <h2 class="text-lg font-bold text-white tracking-tight">
+              Cloud Computing Architecture Mapping
+            </h2>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/30">
+              SLIDE ALIGNED
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">
+            How this prototype maps to an enterprise production cloud stack: IaaS, PaaS, and Hosted Foundation Model APIs.
+          </p>
+        </div>
+
+        <!-- Architecture View Switcher -->
+        <div class="flex rounded-lg bg-dark-900 border border-dark-700 p-0.5 text-xs font-mono">
+          <button onclick="setCloudTab('diagram')" id="tabBtnDiagram" class="px-3 py-1.5 rounded-md bg-purple-500/20 text-purple-300 font-semibold">
+            Visual Diagram
+          </button>
+          <button onclick="setCloudTab('table')" id="tabBtnTable" class="px-3 py-1.5 rounded-md text-slate-400 hover:text-white">
+            Architecture Matrix
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 1: VISUAL ARCHITECTURE DIAGRAM -->
+      <div id="cloudDiagramView" class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
+          
+          <!-- EDGE / IAAS -->
+          <div class="bg-dark-900/90 rounded-xl p-4 border border-emerald-500/30 space-y-3 relative overflow-hidden group hover:border-emerald-400 transition">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                1. EDGE / IAAS
+              </span>
+              <span class="text-slate-500">Physical Layer</span>
+            </div>
+            <h4 class="font-bold text-slate-100 text-sm">Industrial Telemetry Ingestion</h4>
+            <ul class="text-[11px] text-slate-300 space-y-1.5 leading-normal">
+              <li>• <strong>Edge Gateways:</strong> AWS Outposts / On-Prem Siemens Industrial PC</li>
+              <li>• <strong>Protocols:</strong> MQTT / OPC-UA / Modbus TCP</li>
+              <li>• <strong>Cluster VMs:</strong> Auto-scaled Mosquitto / EMQX brokers running on AWS EC2 or GCP Compute Engine</li>
+              <li>• <strong>Local Pre-processing:</strong> Vibration FFT, peak-to-peak filtering</li>
+            </ul>
+            <div class="pt-2 text-[10px] text-emerald-400/80 border-t border-dark-800">
+              Prototype Eq: Live JavaScript stochastic telemetry generator
+            </div>
+          </div>
+
+          <!-- STREAMING / PAAS -->
+          <div class="bg-dark-900/90 rounded-xl p-4 border border-cyan-500/30 space-y-3 relative overflow-hidden group hover:border-cyan-400 transition">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                2. PAAS INGESTION
+              </span>
+              <span class="text-slate-500">Pipeline Layer</span>
+            </div>
+            <h4 class="font-bold text-slate-100 text-sm">Managed Streaming & Time-Series</h4>
+            <ul class="text-[11px] text-slate-300 space-y-1.5 leading-normal">
+              <li>• <strong>Managed Message Bus:</strong> AWS IoT Core / Azure IoT Hub / MSK Kafka</li>
+              <li>• <strong>Stream Analytics:</strong> AWS Kinesis / Apache Flink on AWS EMR</li>
+              <li>• <strong>Time-Series Storage:</strong> Amazon Timestream / TimescaleDB Cloud</li>
+              <li>• <strong>Event Triggers:</strong> AWS Lambda rule triggers anomaly detection</li>
+            </ul>
+            <div class="pt-2 text-[10px] text-cyan-400/80 border-t border-dark-800">
+              Prototype Eq: Chart.js rolling buffers & threshold alert listeners
+            </div>
+          </div>
+
+          <!-- RAG & VECTOR / PAAS -->
+          <div class="bg-dark-900/90 rounded-xl p-4 border border-amber-500/30 space-y-3 relative overflow-hidden group hover:border-amber-400 transition">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                3. PAAS VECTOR RAG
+              </span>
+              <span class="text-slate-500">Knowledge Layer</span>
+            </div>
+            <h4 class="font-bold text-slate-100 text-sm">Managed Vector Search & SOPs</h4>
+            <ul class="text-[11px] text-slate-300 space-y-1.5 leading-normal">
+              <li>• <strong>Vector DB:</strong> Pinecone / Amazon OpenSearch Service / Weaviate Cloud</li>
+              <li>• <strong>Embeddings:</strong> Cohere Embed / Amazon Titan Text Embeddings</li>
+              <li>• <strong>Document Store:</strong> Amazon S3 for OEM Equipment Manuals & ISO specs</li>
+              <li>• <strong>Hybrid Retrieval:</strong> BM25 keyword matching + Dense Vector Search</li>
+            </ul>
+            <div class="pt-2 text-[10px] text-amber-400/80 border-t border-dark-800">
+              Prototype Eq: In-memory Mini-RAG keyword scoring engine
+            </div>
+          </div>
+
+          <!-- FOUNDATION MODEL / MAAS -->
+          <div class="bg-dark-900/90 rounded-xl p-4 border border-purple-500/30 space-y-3 relative overflow-hidden group hover:border-purple-400 transition">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                4. MAAS / HOSTED API
+              </span>
+              <span class="text-slate-500">Cognitive Layer</span>
+            </div>
+            <h4 class="font-bold text-slate-100 text-sm">Hosted Foundation Model</h4>
+            <ul class="text-[11px] text-slate-300 space-y-1.5 leading-normal">
+              <li>• <strong>Model Endpoint:</strong> Anthropic Claude API / AWS Bedrock Claude 3.5 Sonnet</li>
+              <li>• <strong>Security Guardrails:</strong> Amazon Bedrock Guardrails / Azure Content Safety</li>
+              <li>• <strong>Observability:</strong> Langfuse / OpenLLMetry token & latency telemetry</li>
+              <li>• <strong>Caching:</strong> Redis / AWS ElastiCache for repetitive diagnostic prompts</li>
+            </ul>
+            <div class="pt-2 text-[10px] text-purple-400/80 border-t border-dark-800">
+              Prototype Eq: Anthropic Messages API caller + Smart offline fallback
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Data Flow Connector Graphic -->
+        <div class="p-4 rounded-xl bg-dark-900/60 border border-dark-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono text-center">
+          <div class="flex items-center gap-2 text-emerald-400">
+            <span class="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/30">Vibration / Temp Drift</span>
+            <span>➔</span>
+          </div>
+          <div class="flex items-center gap-2 text-cyan-400">
+            <span class="px-2 py-1 rounded bg-cyan-500/10 border border-cyan-500/30">PaaS IoT Ingest & Anomaly Detection</span>
+            <span>➔</span>
+          </div>
+          <div class="flex items-center gap-2 text-amber-400">
+            <span class="px-2 py-1 rounded bg-amber-500/10 border border-amber-500/30">Mini-RAG Matches ISO 10816 SOP</span>
+            <span>➔</span>
+          </div>
+          <div class="flex items-center gap-2 text-purple-400">
+            <span class="px-2 py-1 rounded bg-purple-500/10 border border-purple-500/30">Claude API Synthesizes Root Cause</span>
+            <span>➔</span>
+          </div>
+          <div class="flex items-center gap-2 text-brand-400 font-bold">
+            <span class="px-2 py-1 rounded bg-brand-500/20 border border-brand-400/40">Plant Engineer Dashboard</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: DETAILED ARCHITECTURE MATRIX (Initially Hidden) -->
+      <div id="cloudTableView" class="hidden overflow-x-auto">
+        <table class="w-full text-left text-xs font-mono border-collapse border border-dark-800">
+          <thead>
+            <tr class="bg-dark-900 text-slate-300 border-b border-dark-700">
+              <th class="p-3 border-r border-dark-800">Cloud Model</th>
+              <th class="p-3 border-r border-dark-800">Component in MachineSense</th>
+              <th class="p-3 border-r border-dark-800">AWS / Azure / GCP Equivalent</th>
+              <th class="p-3 border-r border-dark-800">Responsibility Boundary</th>
+              <th class="p-3">Trade-off / Advantage</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-dark-800 text-slate-300">
+            <tr class="hover:bg-dark-900/40">
+              <td class="p-3 font-bold text-emerald-400 border-r border-dark-800">IaaS (Infrastructure as a Service)</td>
+              <td class="p-3 border-r border-dark-800">Virtual telemetry server, edge aggregation gateways, raw MQTT broker</td>
+              <td class="p-3 border-r border-dark-800">AWS EC2, Azure VMs, AWS Outposts, Google Compute Engine</td>
+              <td class="p-3 border-r border-dark-800">Customer manages OS, patch management, scaling logic, broker uptime</td>
+              <td class="p-3">Maximum low-level control, deterministic network routing, ideal for strict factory security compliance</td>
+            </tr>
+            <tr class="hover:bg-dark-900/40">
+              <td class="p-3 font-bold text-cyan-400 border-r border-dark-800">PaaS (Platform as a Service)</td>
+              <td class="p-3 border-r border-dark-800">Time-series data storage, message streaming queue, vector knowledge retrieval</td>
+              <td class="p-3 border-r border-dark-800">AWS IoT Core, Azure IoT Hub, Amazon Timestream, Pinecone / Weaviate Cloud, AWS Lambda</td>
+              <td class="p-3 border-r border-dark-800">Cloud provider handles OS, clusters, high availability; customer provides code/schemas</td>
+              <td class="p-3">Rapid time-to-market, zero server patching, auto-scales from 3 sensors to 30,000 sensors effortlessly</td>
+            </tr>
+            <tr class="hover:bg-dark-900/40">
+              <td class="p-3 font-bold text-purple-400 border-r border-dark-800">MaaS / Hosted Foundation Model</td>
+              <td class="p-3 border-r border-dark-800">Claude 3.5 Sonnet diagnostic reasoning, prompt evaluation, RCA synthesis</td>
+              <td class="p-3 border-r border-dark-800">Anthropic Direct API, AWS Bedrock (Claude), Azure OpenAI Service, Google Vertex AI</td>
+              <td class="p-3 border-r border-dark-800">Provider trains, hosts, and scales weights; customer engineers prompts and context</td>
+              <td class="p-3">State-of-the-art diagnostic reasoning without multi-million dollar GPU training clusters; pay per token</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODALS -->
+  <!-- ======================================================== -->
+
+  <!-- MODAL 1: KNOWLEDGE BASE BROWSER (RAG CORE) -->
+  <div id="kbModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="glass-card max-w-3xl w-full rounded-2xl border border-dark-700 p-6 space-y-4 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-dark-700/80 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-cyan-400"></span>
+          <h3 class="text-base font-bold text-white font-mono">Maintenance SOP Knowledge Base (Mini-RAG)</h3>
+        </div>
+        <button onclick="closeKnowledgeBaseModal()" class="text-slate-400 hover:text-white text-lg font-mono">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-400">
+        These engineering maintenance manuals are indexed in the in-memory knowledge store and retrieved whenever keyword tokens match live anomalies or questions.
+      </p>
+
+      <div class="flex-1 overflow-y-auto space-y-3 pr-1" id="fullKbList">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <div class="pt-3 border-t border-dark-700 flex justify-end">
+        <button onclick="closeKnowledgeBaseModal()" class="px-4 py-1.5 rounded-lg bg-dark-800 text-xs font-mono text-slate-200 hover:bg-dark-700">
+          Close Knowledge Base
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CLAUDE API CONFIGURATION -->
+  <div id="configModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full rounded-2xl border border-dark-700 p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-dark-700/80 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-brand-400"></span>
+          <h3 class="text-base font-bold text-white font-mono">Claude API Settings</h3>
+        </div>
+        <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white text-lg font-mono">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-mono text-slate-300 mb-1">Execution Engine:</label>
+          <div class="grid grid-cols-2 gap-2 font-mono">
+            <button id="engineSimulatorBtn" onclick="setEngineMode('simulator')" class="p-2.5 rounded-lg border text-left transition border-brand-500 bg-brand-500/10 text-brand-400 font-semibold">
+              <div class="text-xs font-bold">Offline Simulator</div>
+              <div class="text-[10px] text-slate-400">Built-in smart Claude RCA engine (no key required)</div>
+            </button>
+            <button id="engineLiveBtn" onclick="setEngineMode('live')" class="p-2.5 rounded-lg border text-left transition border-dark-700 bg-dark-900 text-slate-400">
+              <div class="text-xs font-bold">Direct Claude API</div>
+              <div class="text-[10px] text-slate-400">Live call to Anthropic Messages endpoint</div>
+            </button>
+          </div>
+        </div>
+
+        <div id="apiKeyInputWrapper" class="space-y-1.5 opacity-50 pointer-events-none">
+          <label class="block font-mono text-slate-300">Anthropic API Key:</label>
+          <input type="password" id="anthropicApiKeyInput" placeholder="sk-ant-api03-..." class="w-full bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-brand-400" />
+          <p class="text-[10px] text-slate-500">
+            Stored only in browser session memory. Calls are dispatched with direct browser access enabled.
+          </p>
+        </div>
+
+        <div class="p-3 rounded-lg bg-dark-900/80 border border-dark-800 text-[11px] text-slate-400 space-y-1">
+          <div><strong class="text-slate-300">Selected Model:</strong> <span class="text-brand-400 font-mono">claude-3-5-sonnet-20241022</span></div>
+          <div><strong class="text-slate-300">Max Tokens:</strong> <span class="font-mono">1,024</span></div>
+          <div><strong class="text-slate-300">Temperature:</strong> <span class="font-mono">0.2</span> (Deterministic engineering diagnostic)</div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-dark-700 flex justify-end gap-2">
+        <button onclick="closeConfigModal()" class="px-4 py-1.5 rounded-lg bg-dark-800 text-xs font-mono text-slate-300 hover:bg-dark-700">
+          Cancel
+        </button>
+        <button onclick="saveApiConfig()" class="px-4 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-dark-950 font-bold text-xs font-mono">
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: INCIDENT MAINTENANCE REPORT (EXPORT / PRINT) -->
+  <div id="reportModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-dark-900 max-w-2xl w-full rounded-2xl border border-dark-700 p-6 space-y-4 max-h-[90vh] flex flex-col text-slate-200">
+      <div class="flex items-center justify-between border-b border-dark-700 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+          <h3 class="text-base font-bold font-mono text-white">Industrial Incident & Telemetry Report</h3>
+        </div>
+        <button onclick="closeReportModal()" class="text-slate-400 hover:text-white text-lg font-mono">✕</button>
+      </div>
+
+      <div id="reportPrintArea" class="flex-1 overflow-y-auto space-y-4 text-xs font-mono bg-dark-950 p-4 rounded-xl border border-dark-800">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <div class="pt-3 border-t border-dark-700 flex justify-end gap-2">
+        <button onclick="closeReportModal()" class="px-4 py-1.5 rounded-lg bg-dark-800 text-xs font-mono text-slate-300">
+          Close
+        </button>
+        <button onclick="window.print()" class="px-4 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-dark-950 font-bold text-xs font-mono flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          Print / Save PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- FOOTER -->
+  <!-- ======================================================== -->
+  <footer class="border-t border-dark-700/60 bg-dark-950/90 py-6 px-4 lg:px-8 mt-12 text-center text-xs font-mono text-slate-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div>
+        <strong class="text-slate-400">MachineSense</strong> • AI-Powered Predictive Maintenance System
+      </div>
+      <div>
+        Designed for Industrial IoT Internship Showcase • Powered by Claude & RAG Architecture
+      </div>
+    </div>
+  </footer>
+
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT APPLICATION CORE -->
+  <!-- ======================================================== -->
+  <script>
+    /* ============================================================
+       1. DATA STRUCTURES & KNOWLEDGE BASE (MINI-RAG)
+       ============================================================ */
+    const KNOWLEDGE_BASE = [
+      {
+        id: "sop-01",
+        title: "Bearing Race Wear & Spallation (ISO 10816-3)",
+        keywords: ["bearing", "spindle", "vibration", "noise", "kurtosis", "race", "bpfo", "bpfi", "chatter"],
+        machineType: "CNC Milling Spindle / Rotary Motors",
+        symptoms: "Elevated high-frequency acceleration carpet (2kHz-10kHz), acoustic kurtosis > 3.8, bearing housing temperature exceeding 65°C.",
+        rootCause: "Sub-surface fatigue, lack of synthetic grease lubrication, particulate contamination, or excessive radial pre-load.",
+        correctiveAction: "1. Lockout/Tagout machine. 2. Verify bearing defect frequencies (BPFO/BPFI). 3. Inspect lubricant for metallic particles. 4. Regrease or schedule immediate ceramic hybrid bearing cartridge replacement."
+      },
+      {
+        id: "sop-02",
+        title: "Shaft Misalignment: Angular & Parallel Coupling Offset",
+        keywords: ["misalignment", "coupling", "axial", "conveyor", "motor", "shaft", "harmonic", "2x"],
+        machineType: "Conveyor Drive Motor / Gearbox Couplings",
+        symptoms: "High axial vibration peak at 2X running frequency (180° phase shift across coupling), elevated drive-end motor bearing temp.",
+        rootCause: "Thermal growth offset, settling of foundation baseplate, worn elastomer spider insert, improper shim pack during installation.",
+        correctiveAction: "1. Perform reverse-indicator dial or laser shaft alignment. 2. Adjust foot shims to within 0.05mm tolerance. 3. Check for soft foot condition. 4. Re-torque motor hold-down bolts to 120 Nm."
+      },
+      {
+        id: "sop-03",
+        title: "Rotor Dynamic Imbalance (ISO 1940-1 Grade G2.5)",
+        keywords: ["imbalance", "balance", "spindle", "rotor", "unbalance", "1x", "centrifugal"],
+        machineType: "High-Speed CNC Spindle / Compressor Impellers",
+        symptoms: "Dominant radial vibration spike strictly at 1X rotational speed, sinusoidal time waveform, vibration magnitude proportional to RPM².",
+        rootCause: "Material buildup on impeller blades, tool holder runout > 3µm, loss of balancing counterweight, asymmetric thermal deformation.",
+        correctiveAction: "1. Inspect tool taper for swarf contamination. 2. Perform dual-plane dynamic field balancing using accelerometer tachometer strobe. 3. Clean and polish rotor assembly."
+      },
+      {
+        id: "sop-04",
+        title: "Motor Stator Thermal Overload & Cooling Degradation",
+        keywords: ["thermal", "overload", "temp", "temperature", "winding", "compressor", "cooling", "heat", "fan", "current"],
+        machineType: "Atlas Rotary Compressor / Induction Motors",
+        symptoms: "Discharge air temp > 92°C, winding insulation temp rise > NEMA Class F (105°C rise), current draw surging above full load amps.",
+        rootCause: "Clogged air-oil heat exchanger matrix, cooling fan impeller blade breakage, restricted intake filter, high ambient room temperature (>40°C).",
+        correctiveAction: "1. Immediately reduce compressor loading. 2. Blow out heat exchanger fins with compressed air. 3. Clean intake air filters. 4. Verify radiator cooling fan rotational direction and motor thermistor continuity."
+      },
+      {
+        id: "sop-05",
+        title: "Centrifugal Cavitation & Suction Starvation",
+        keywords: ["cavitation", "suction", "pressure", "starvation", "bubbles", "compressor", "hiss", "erratic"],
+        machineType: "Rotary Air Compressors & Fluid Booster Pumps",
+        symptoms: "Loud broadband crackling/gravel sound, erratic fluctuating discharge pressure (±1.5 bar swings), erratic suction line vacuum.",
+        rootCause: "Inlet throttling valve partially stuck closed, dirty suction filter causing inadequate Net Positive Suction Head (NPSH), foaming lubricant.",
+        correctiveAction: "1. Inspect suction strainer for foreign debris. 2. Check pneumatic actuator on inlet modulating valve. 3. Sample oil for aeration and viscosity loss. 4. Confirm minimum intake line static pressure."
+      }
+    ];
+
+    /* ============================================================
+       2. REAL-TIME MACHINE TELEMETRY STATE
+       ============================================================ */
+    const machines = {
+      compressor: {
+        id: "CMP-001",
+        name: "Atlas-75 Rotary Compressor",
+        temp: 72.4,      // °C (Nominal 68-76)
+        vibration: 1.82, // mm/s (Nominal 1.2-2.2)
+        pressure: 7.48,  // bar (Nominal 7.2-7.8)
+        rpm: 2984,       // RPM (Nominal 2980-3000)
+        status: "normal",
+        fault: null,     // active fault type
+        history: {
+          labels: Array(25).fill(""),
+          temp: Array(25).fill(72.4),
+          vib: Array(25).fill(1.82)
+        }
+      },
+      spindle: {
+        id: "CNC-SP4",
+        name: "5-Axis CNC Milling Spindle",
+        temp: 41.2,      // °C (Nominal 38-46)
+        vibration: 1.15, // mm/s (Nominal 0.8-1.6)
+        rpm: 15020,      // RPM (Nominal 14800-15200)
+        kurtosis: 3.04,  // K (Nominal 2.8-3.2)
+        status: "normal",
+        fault: null,
+        history: {
+          labels: Array(25).fill(""),
+          temp: Array(25).fill(41.2),
+          vib: Array(25).fill(1.15)
+        }
+      },
+      conveyor: {
+        id: "MOT-CONV2",
+        name: "Conveyor Induction Drive Motor",
+        temp: 58.6,      // °C (Nominal 54-62)
+        vibration: 1.94, // mm/s (Nominal 1.4-2.4)
+        current: 31.8,   // A (Nominal 28-34)
+        rpm: 1448,       // RPM (Nominal 1440-1455)
+        status: "normal",
+        fault: null,
+        history: {
+          labels: Array(25).fill(""),
+          temp: Array(25).fill(58.6),
+          vib: Array(25).fill(1.94)
+        }
+      }
+    };
+
+    let simActive = true;
+    let simSpeed = 1;
+    let simInterval = null;
+    let totalSamples = 0;
+    let audioAlertEnabled = false;
+    let audioContext = null;
+    let engineMode = "simulator"; // "simulator" | "live"
+    let anthropicApiKey = "";
+
+    let currentSelectedTarget = "spindle";
+    let chartCmp = null;
+    let chartSpn = null;
+    let chartCnv = null;
+
+    /* ============================================================
+       3. CHART INITIALIZATION
+       ============================================================ */
+    function initCharts() {
+      if (typeof Chart === 'undefined') {
+        console.warn("Chart.js not loaded or offline.");
+        return;
+      }
+      try {
+        const commonOptions = {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false }
+          },
+          scales: {
+            x: { display: false },
+            y: {
+              display: true,
+              position: 'right',
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#64748b',
+                font: { size: 9, family: '"JetBrains Mono"' },
+                maxTicksLimit: 3
+              }
+            }
+          }
+        };
+
+        // Compressor Chart
+        const elCmp = document.getElementById('chart-compressor');
+        if (elCmp) {
+          const ctxCmp = elCmp.getContext('2d');
+          chartCmp = new Chart(ctxCmp, {
+            type: 'line',
+            data: {
+              labels: machines.compressor.history.labels,
+              datasets: [
+                {
+                  label: 'Vib (mm/s)',
+                  data: machines.compressor.history.vib,
+                  borderColor: '#2dd4bf',
+                  borderWidth: 1.5,
+                  tension: 0.3,
+                  pointRadius: 0
+                },
+                {
+                  label: 'Temp (°C/10)',
+                  data: machines.compressor.history.temp.map(v => v / 10),
+                  borderColor: '#f59e0b',
+                  borderWidth: 1.2,
+                  borderDash: [3, 3],
+                  tension: 0.3,
+                  pointRadius: 0
+                }
+              ]
+            },
+            options: commonOptions
+          });
+        }
+
+        // Spindle Chart
+        const elSpn = document.getElementById('chart-spindle');
+        if (elSpn) {
+          const ctxSpn = elSpn.getContext('2d');
+          chartSpn = new Chart(ctxSpn, {
+            type: 'line',
+            data: {
+              labels: machines.spindle.history.labels,
+              datasets: [
+                {
+                  label: 'Vib (mm/s)',
+                  data: machines.spindle.history.vib,
+                  borderColor: '#38bdf8',
+                  borderWidth: 1.5,
+                  tension: 0.3,
+                  pointRadius: 0
+                },
+                {
+                  label: 'Temp (°C/10)',
+                  data: machines.spindle.history.temp.map(v => v / 10),
+                  borderColor: '#ec4899',
+                  borderWidth: 1.2,
+                  borderDash: [3, 3],
+                  tension: 0.3,
+                  pointRadius: 0
+                }
+              ]
+            },
+            options: commonOptions
+          });
+        }
+
+        // Conveyor Chart
+        const elCnv = document.getElementById('chart-conveyor');
+        if (elCnv) {
+          const ctxCnv = elCnv.getContext('2d');
+          chartCnv = new Chart(ctxCnv, {
+            type: 'line',
+            data: {
+              labels: machines.conveyor.history.labels,
+              datasets: [
+                {
+                  label: 'Vib (mm/s)',
+                  data: machines.conveyor.history.vib,
+                  borderColor: '#a855f7',
+                  borderWidth: 1.5,
+                  tension: 0.3,
+                  pointRadius: 0
+                },
+                {
+                  label: 'Temp (°C/10)',
+                  data: machines.conveyor.history.temp.map(v => v / 10),
+                  borderColor: '#f97316',
+                  borderWidth: 1.2,
+                  borderDash: [3, 3],
+                  tension: 0.3,
+                  pointRadius: 0
+                }
+              ]
+            },
+            options: commonOptions
+          });
+        }
+      } catch (err) {
+        console.warn("Chart setup encountered an issue:", err);
+      }
+    }
+
+    /* ============================================================
+       4. SIMULATION LOOP (BROWNIAN DRIFT + ANOMALIES)
+       ============================================================ */
+    function gaussianNoise() {
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    function updateSimulationStep() {
+      totalSamples++;
+      document.getElementById('totalSamplesLabel').textContent = totalSamples;
+
+      // 1. UPDATE COMPRESSOR
+      const cmp = machines.compressor;
+      if (cmp.fault === "thermal") {
+        cmp.temp = Math.min(108, cmp.temp + 0.65 + gaussianNoise() * 0.15);
+        cmp.vibration = Math.min(6.2, cmp.vibration + 0.08 + gaussianNoise() * 0.05);
+        cmp.pressure = Math.max(5.8, cmp.pressure - 0.04);
+        cmp.status = cmp.temp > 95 ? "critical" : "warning";
+      } else if (cmp.fault === "cavitation") {
+        cmp.vibration = Math.min(7.5, cmp.vibration + 0.35 + gaussianNoise() * 0.4);
+        cmp.pressure = 7.4 + Math.sin(totalSamples * 0.8) * 1.8 + gaussianNoise() * 0.3;
+        cmp.temp = Math.min(85, cmp.temp + 0.1);
+        cmp.status = cmp.vibration > 4.5 ? "critical" : "warning";
+      } else {
+        // Natural nominal Brownian drift
+        cmp.temp = 72.0 + gaussianNoise() * 0.6;
+        cmp.vibration = 1.80 + gaussianNoise() * 0.08;
+        cmp.pressure = 7.48 + gaussianNoise() * 0.04;
+        cmp.rpm = Math.round(2984 + gaussianNoise() * 4);
+        cmp.status = "normal";
+      }
+
+      // 2. UPDATE CNC SPINDLE
+      const spn = machines.spindle;
+      if (spn.fault === "bearing") {
+        spn.vibration = Math.min(8.4, spn.vibration + 0.28 + gaussianNoise() * 0.1);
+        spn.temp = Math.min(76, spn.temp + 0.45 + gaussianNoise() * 0.1);
+        spn.kurtosis = Math.min(6.8, spn.kurtosis + 0.18 + gaussianNoise() * 0.1);
+        spn.status = (spn.vibration > 4.5 || spn.temp > 65) ? "critical" : "warning";
+      } else if (spn.fault === "imbalance") {
+        spn.vibration = Math.min(6.8, spn.vibration + 0.22 + gaussianNoise() * 0.1);
+        spn.kurtosis = 3.2 + gaussianNoise() * 0.1; // 1X wave remains sinusoidal
+        spn.temp = Math.min(55, spn.temp + 0.15);
+        spn.status = spn.vibration > 3.8 ? "critical" : "warning";
+      } else {
+        spn.temp = 41.2 + gaussianNoise() * 0.4;
+        spn.vibration = 1.15 + gaussianNoise() * 0.05;
+        spn.rpm = Math.round(15020 + gaussianNoise() * 20);
+        spn.kurtosis = 3.02 + gaussianNoise() * 0.05;
+        spn.status = "normal";
+      }
+
+      // 3. UPDATE CONVEYOR
+      const cnv = machines.conveyor;
+      if (cnv.fault === "misalignment") {
+        cnv.vibration = Math.min(7.9, cnv.vibration + 0.25 + gaussianNoise() * 0.12);
+        cnv.temp = Math.min(88, cnv.temp + 0.4 + gaussianNoise() * 0.1);
+        cnv.current = Math.min(46, cnv.current + 0.35);
+        cnv.status = (cnv.vibration > 4.5 || cnv.temp > 78) ? "critical" : "warning";
+      } else {
+        cnv.temp = 58.6 + gaussianNoise() * 0.5;
+        cnv.vibration = 1.94 + gaussianNoise() * 0.08;
+        cnv.current = 31.8 + gaussianNoise() * 0.25;
+        cnv.rpm = Math.round(1448 + gaussianNoise() * 3);
+        cnv.status = "normal";
+      }
+
+      // Trigger Audio Alert if any machine is critical
+      if (audioAlertEnabled && (cmp.status === "critical" || spn.status === "critical" || cnv.status === "critical")) {
+        playBeepAlert();
+      }
+
+      // Update UI components
+      renderTelemetryUI();
+      updateCharts();
+      updatePromptPipelinePreview();
+    }
+
+    function renderTelemetryUI() {
+      // COMPRESSOR UI
+      const cmp = machines.compressor;
+      document.getElementById('cmp-temp-val').textContent = cmp.temp.toFixed(1);
+      document.getElementById('cmp-vib-val').textContent = cmp.vibration.toFixed(2);
+      document.getElementById('cmp-press-val').textContent = cmp.pressure.toFixed(2);
+      document.getElementById('cmp-rpm-val').textContent = cmp.rpm;
+      updateStatusBadge('compressor', cmp.status);
+
+      // SPINDLE UI
+      const spn = machines.spindle;
+      document.getElementById('spn-temp-val').textContent = spn.temp.toFixed(1);
+      document.getElementById('spn-vib-val').textContent = spn.vibration.toFixed(2);
+      document.getElementById('spn-rpm-val').textContent = spn.rpm.toLocaleString();
+      document.getElementById('spn-kurt-val').textContent = spn.kurtosis.toFixed(2);
+      updateStatusBadge('spindle', spn.status);
+
+      // CONVEYOR UI
+      const cnv = machines.conveyor;
+      document.getElementById('cnv-temp-val').textContent = cnv.temp.toFixed(1);
+      document.getElementById('cnv-vib-val').textContent = cnv.vibration.toFixed(2);
+      document.getElementById('cnv-amp-val').textContent = cnv.current.toFixed(1);
+      document.getElementById('cnv-rpm-val').textContent = cnv.rpm;
+      updateStatusBadge('conveyor', cnv.status);
+    }
+
+    function updateStatusBadge(id, status) {
+      const card = document.getElementById(`card-${id}`);
+      const pill = document.getElementById(`${id}-status-pill`);
+      const pulse = document.getElementById(`${id}-pulse`);
+
+      card.classList.remove('glow-red', 'glow-amber');
+      if (status === 'critical') {
+        card.classList.add('glow-red');
+        pill.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse";
+        pill.textContent = "CRITICAL FAULT";
+        pulse.className = "w-2.5 h-2.5 rounded-full bg-red-500 animate-ping";
+      } else if (status === 'warning') {
+        card.classList.add('glow-amber');
+        pill.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40";
+        pill.textContent = "DRIFT WARNING";
+        pulse.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
+      } else {
+        pill.className = "text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+        pill.textContent = "HEALTHY";
+        pulse.className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
+      }
+    }
+
+    function updateCharts() {
+      // Update historical arrays
+      const pushHistory = (m) => {
+        m.history.temp.push(m.temp);
+        m.history.temp.shift();
+        m.history.vib.push(m.vibration);
+        m.history.vib.shift();
+      };
+      pushHistory(machines.compressor);
+      pushHistory(machines.spindle);
+      pushHistory(machines.conveyor);
+
+      try {
+        if (chartCmp) chartCmp.update();
+        if (chartSpn) chartSpn.update();
+        if (chartCnv) chartCnv.update();
+      } catch (err) {
+        // Suppress transient render errors
+      }
+    }
+
+    /* ============================================================
+       5. FAULT INJECTION CONTROLS
+       ============================================================ */
+    function injectFault(type) {
+      resetFaults(false); // clear others without reset message
+      const badge = document.getElementById('activeFaultBadge');
+
+      if (type === 'bearing') {
+        machines.spindle.fault = 'bearing';
+        currentSelectedTarget = 'spindle';
+        document.getElementById('diagnosticTargetSelect').value = 'spindle';
+        badge.textContent = "FAULT ACTIVE: Bearing Wear (CNC Spindle) - High vibration & kurtosis";
+        badge.className = "text-[11px] font-mono px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse";
+        document.getElementById('engineerPromptInput').value = "Spindle front bearing is exhibiting anomalous vibration spikes and elevated kurtosis. Perform root cause analysis and specify remaining run time before spallation.";
+      } else if (type === 'misalignment') {
+        machines.conveyor.fault = 'misalignment';
+        currentSelectedTarget = 'conveyor';
+        document.getElementById('diagnosticTargetSelect').value = 'conveyor';
+        badge.textContent = "FAULT ACTIVE: Shaft Misalignment (Conveyor) - 2X harmonic vibration";
+        badge.className = "text-[11px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse";
+        document.getElementById('engineerPromptInput').value = "Conveyor drive motor shows severe axial vibration and motor drive-end heating. Is this angular or parallel misalignment, and how should laser realignment proceed?";
+      } else if (type === 'imbalance') {
+        machines.spindle.fault = 'imbalance';
+        currentSelectedTarget = 'spindle';
+        document.getElementById('diagnosticTargetSelect').value = 'spindle';
+        badge.textContent = "FAULT ACTIVE: Dynamic Rotor Imbalance (CNC Spindle) - 1X RPM surge";
+        badge.className = "text-[11px] font-mono px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 animate-pulse";
+        document.getElementById('engineerPromptInput').value = "CNC spindle shows 1X rotational speed vibration spike exceeding ISO 1940 limits. Diagnose whether this is tool holder unbalance or swarf contamination.";
+      } else if (type === 'thermal') {
+        machines.compressor.fault = 'thermal';
+        currentSelectedTarget = 'compressor';
+        document.getElementById('diagnosticTargetSelect').value = 'compressor';
+        badge.textContent = "FAULT ACTIVE: Thermal Overload (Compressor) - Heat exchanger failure";
+        badge.className = "text-[11px] font-mono px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/40 animate-pulse";
+        document.getElementById('engineerPromptInput').value = "Compressor discharge air temp is rapidly approaching trip limit (95°C+). What are the immediate mitigation steps and thermal dissipation checks?";
+      } else if (type === 'cavitation') {
+        machines.compressor.fault = 'cavitation';
+        currentSelectedTarget = 'compressor';
+        document.getElementById('diagnosticTargetSelect').value = 'compressor';
+        badge.textContent = "FAULT ACTIVE: Cavitation & Pressure Fluctuation (Compressor / Pump)";
+        badge.className = "text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/40 animate-pulse";
+        document.getElementById('engineerPromptInput').value = "Severe pressure swings and high-frequency broadband hiss detected at compressor suction inlet. Check for cavitation and inlet valve degradation.";
+      }
+
+      updatePromptPipelinePreview();
+    }
+
+    function resetFaults(updateBadge = true) {
+      machines.compressor.fault = null;
+      machines.spindle.fault = null;
+      machines.conveyor.fault = null;
+
+      if (updateBadge) {
+        const badge = document.getElementById('activeFaultBadge');
+        badge.textContent = "STATUS: NOMINAL (NO FAULTS INJECTED)";
+        badge.className = "text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+        document.getElementById('engineerPromptInput').value = "Inspect current telemetry envelopes across all 3 machines and recommend preventative maintenance schedules.";
+      }
+      updatePromptPipelinePreview();
+    }
+
+    /* ============================================================
+       6. MINI-RAG SEARCH & KEYWORD RETRIEVAL
+       ============================================================ */
+    function retrieveRelevantDocs(targetMachineKey, question) {
+      const machine = machines[targetMachineKey];
+      const combinedTokens = [
+        ...question.toLowerCase().split(/\W+/),
+        targetMachineKey,
+        machine.fault || "",
+        machine.status === "critical" ? "fault" : "",
+        machine.status === "warning" ? "drift" : ""
+      ].filter(t => t.length > 2);
+
+      const scoredDocs = KNOWLEDGE_BASE.map(doc => {
+        let matchScore = 0;
+        let matchedKeywords = [];
+
+        doc.keywords.forEach(kw => {
+          if (combinedTokens.includes(kw.toLowerCase())) {
+            matchScore += 25;
+            matchedKeywords.push(kw);
+          }
+        });
+
+        // Boost if active fault corresponds directly
+        if (machine.fault && doc.id.toLowerCase().includes(machine.fault)) {
+          matchScore += 40;
+        }
+
+        return {
+          ...doc,
+          score: Math.min(98, matchScore),
+          matchedKeywords
+        };
+      });
+
+      // Filter docs with score > 20, or fallback to highest matching
+      let results = scoredDocs.filter(d => d.score > 20).sort((a, b) => b.score - a.score);
+      if (results.length === 0) {
+        results = [scoredDocs[0]]; // fallback
+      }
+      return results.slice(0, 2); // Return top 2 matching SOPs (miniature context)
+    }
+
+    /* ============================================================
+       7. PROMPT ENGINEERING PIPELINE SYNTHESIS
+       ============================================================ */
+    function buildPromptPayload(targetMachineKey) {
+      const machine = machines[targetMachineKey];
+      const userQuestion = document.getElementById('engineerPromptInput').value.trim() || 
+        `Perform comprehensive health check and root cause analysis for ${machine.name}.`;
+
+      // 1. Telemetry Snapshot String
+      let telemetrySnapshot = "";
+      if (targetMachineKey === "spindle") {
+        telemetrySnapshot = `Asset: ${machine.name} (${machine.id})\n` +
+          `- Front Bearing Temperature: ${machine.temp.toFixed(1)}°C (Nominal: 38-46°C, Max Limit: 70°C)\n` +
+          `- Radial Vibration RMS: ${machine.vibration.toFixed(2)} mm/s (ISO 10816-3 Warning: 2.8, Alarm: 4.5)\n` +
+          `- Spindle Speed: ${machine.rpm} RPM\n` +
+          `- Acoustic Kurtosis: ${machine.kurtosis.toFixed(2)} (Nominal: 2.8-3.2, Defect Peak: >3.8)\n` +
+          `- Status Assessment: ${machine.status.toUpperCase()}`;
+      } else if (targetMachineKey === "compressor") {
+        telemetrySnapshot = `Asset: ${machine.name} (${machine.id})\n` +
+          `- Discharge Air Temperature: ${machine.temp.toFixed(1)}°C (Nominal: 68-76°C, Trip Limit: 95°C)\n` +
+          `- Overall Vibration: ${machine.vibration.toFixed(2)} mm/s (ISO Class II Limit: 4.5 mm/s)\n` +
+          `- Line Discharge Pressure: ${machine.pressure.toFixed(2)} bar (Target: 7.5 bar)\n` +
+          `- Motor Speed: ${machine.rpm} RPM\n` +
+          `- Status Assessment: ${machine.status.toUpperCase()}`;
+      } else {
+        telemetrySnapshot = `Asset: ${machine.name} (${machine.id})\n` +
+          `- Winding Temperature: ${machine.temp.toFixed(1)}°C (NEMA Class F Limit: 105°C rise)\n` +
+          `- Axial/Radial Vibration: ${machine.vibration.toFixed(2)} mm/s (ISO Warning: 3.5, Alarm: 5.0)\n` +
+          `- Current Draw: ${machine.current.toFixed(1)} A (Full Load Amps: 45A)\n` +
+          `- Motor Shaft Speed: ${machine.rpm} RPM\n` +
+          `- Status Assessment: ${machine.status.toUpperCase()}`;
+      }
+
+      // 2. Mini-RAG Retrieval
+      const matchedSOPs = retrieveRelevantDocs(targetMachineKey, userQuestion);
+      const sopExcerpts = matchedSOPs.map(doc => 
+        `### SOP DOCUMENT [${doc.id}]: ${doc.title}\n` +
+        `Applicable Assets: ${doc.machineType}\n` +
+        `Expected Symptoms: ${doc.symptoms}\n` +
+        `Known Root Cause: ${doc.rootCause}\n` +
+        `Corrective Maintenance Action: ${doc.correctiveAction}`
+      ).join("\n\n");
+
+      // 3. Assemble Complete System & User Message
+      const systemInstruction = 
+        "You are MachineSense Industrial Diagnostic Agent, an expert ISO 10816 / ISO 1940 certified predictive maintenance AI. " +
+        "You analyze live streaming IoT sensor telemetry, correlate anomalies against retrieved plant maintenance standard operating procedures (SOPs), " +
+        "and provide deterministic root cause analyses, ISO criticality ratings, and step-by-step corrective procedures for plant reliability engineers.";
+
+      const userContent = 
+        `=== LIVE SENSOR TELEMETRY SNAPSHOT ===\n${telemetrySnapshot}\n\n` +
+        `=== RETRIEVED MAINTENANCE SOP CONTEXT (MINI-RAG) ===\n${sopExcerpts}\n\n` +
+        `=== PLANT ENGINEER INQUIRY ===\n${userQuestion}\n\n` +
+        `Please respond in crisp industrial markdown format with:\n` +
+        `1. Diagnostic Assessment & Severity Rating (NORMAL / WARNING / CRITICAL / EMERGENCY SHUTDOWN)\n` +
+        `2. Telemetry Evidence Correlation (highlight abnormal metrics against thresholds)\n` +
+        `3. Root Cause Analysis (correlate with retrieved SOP)\n` +
+        `4. Actionable Step-by-Step Remediation Protocol & Safe Run-Time Window.`;
+
+      return {
+        targetMachineKey,
+        telemetrySnapshot,
+        matchedSOPs,
+        systemInstruction,
+        userContent,
+        fullPayload: {
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 1024,
+          temperature: 0.2,
+          system: systemInstruction,
+          messages: [
+            { role: "user", content: userContent }
+          ]
+        }
+      };
+    }
+
+    function updatePromptPipelinePreview() {
+      const payloadData = buildPromptPayload(currentSelectedTarget);
+
+      // Update Stage 1 snapshot box
+      document.getElementById('snapshotTimestamp').textContent = `Target: ${machines[currentSelectedTarget].id}`;
+      document.getElementById('pipelineSnapshotContent').textContent = payloadData.telemetrySnapshot;
+
+      // Update Stage 2 RAG match cards
+      const ragContainer = document.getElementById('ragMatchedCards');
+      ragContainer.innerHTML = "";
+      document.getElementById('ragMatchCount').textContent = `${payloadData.matchedSOPs.length} SOPs Injected`;
+
+      payloadData.matchedSOPs.forEach(doc => {
+        const div = document.createElement('div');
+        div.className = "bg-dark-950 p-2.5 rounded-lg border border-cyan-500/30 flex items-start justify-between gap-2";
+        div.innerHTML = `
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono font-bold text-cyan-300">${doc.title}</span>
+              <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400">Score: ${doc.score}%</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5 line-clamp-1">${doc.rootCause}</p>
+            <div class="flex items-center gap-1 mt-1 text-[10px] font-mono text-slate-500">
+              Matched Tokens: <span class="text-cyan-400">${doc.matchedKeywords.join(", ") || "equipment context"}</span>
+            </div>
+          </div>
+          <span class="text-[10px] font-mono text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded bg-emerald-500/10">INJECTED</span>
+        `;
+        ragContainer.appendChild(div);
+      });
+
+      // Update Token Estimate (approx 4 chars per token)
+      const totalChars = payloadData.systemInstruction.length + payloadData.userContent.length;
+      const estimatedTokens = Math.round(totalChars / 4);
+      document.getElementById('tokenEstimate').textContent = `~${estimatedTokens} Tokens`;
+
+      // Update Raw JSON Output
+      document.getElementById('rawPromptOutput').textContent = JSON.stringify(payloadData.fullPayload, null, 2);
+    }
+
+    function switchPromptView(view) {
+      const pCont = document.getElementById('pipelineContainer');
+      const rCont = document.getElementById('rawPromptContainer');
+      const bPipe = document.getElementById('viewBtnPipeline');
+      const bRaw = document.getElementById('viewBtnRaw');
+
+      if (view === 'pipeline') {
+        pCont.classList.remove('hidden');
+        rCont.classList.add('hidden');
+        bPipe.className = "px-2.5 py-1 rounded-md bg-brand-500/20 text-brand-400 font-semibold";
+        bRaw.className = "px-2.5 py-1 rounded-md text-slate-400 hover:text-white";
+      } else {
+        pCont.classList.add('hidden');
+        rCont.classList.remove('hidden');
+        bRaw.className = "px-2.5 py-1 rounded-md bg-brand-500/20 text-brand-400 font-semibold";
+        bPipe.className = "px-2.5 py-1 rounded-md text-slate-400 hover:text-white";
+      }
+    }
+
+    function copyRawPrompt() {
+      const code = document.getElementById('rawPromptOutput').textContent;
+      navigator.clipboard.writeText(code);
+      alert("Raw Claude prompt JSON copied to clipboard!");
+    }
+
+    /* ============================================================
+       8. FOUNDATION MODEL DIAGNOSTIC CALL (CLAUDE API & SIMULATOR)
+       ============================================================ */
+    async function runClaudeDiagnosis() {
+      const targetKey = document.getElementById('diagnosticTargetSelect').value;
+      const payloadData = buildPromptPayload(targetKey);
+      const machine = machines[targetKey];
+
+      // UI state loading
+      const runBtn = document.getElementById('runDiagnosticBtn');
+      const runSpinner = document.getElementById('runBtnSpinner');
+      const runText = document.getElementById('runBtnText');
+      const terminalBody = document.getElementById('diagnosticTerminalBody');
+      const terminalHeader = document.getElementById('aiTerminalHeader');
+      const statusDot = document.getElementById('aiStatusDot');
+      const statsLabel = document.getElementById('inferenceStats');
+
+      runBtn.disabled = true;
+      runSpinner.classList.remove('hidden');
+      runText.textContent = "Synthesizing Telemetry & Calling Model...";
+      terminalHeader.textContent = "INFERENCE IN PROGRESS...";
+      statusDot.className = "w-2 h-2 rounded-full bg-amber-400 animate-ping";
+      terminalBody.innerHTML = `
+        <div class="flex items-center gap-2 text-slate-400 font-mono text-xs animate-pulse">
+          <span>⚙️ Dispatching context to Claude foundation model...</span>
+        </div>
+      `;
+
+      const startTime = performance.now();
+
+      try {
+        if (engineMode === "live" && anthropicApiKey) {
+          // DIRECT ANTHROPIC CLAUDE API CALL
+          const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": anthropicApiKey,
+              "anthropic-version": "2023-06-01",
+              "anthropic-dangerous-direct-browser-access": "true"
+            },
+            body: JSON.stringify(payloadData.fullPayload)
+          });
+
+          if (!response.ok) {
+            const errJson = await response.json();
+            throw new Error(errJson.error?.message || `HTTP ${response.status} from Claude API`);
+          }
+
+          const resData = await response.json();
+          const latency = Math.round(performance.now() - startTime);
+          const rawText = resData.content[0].text;
+          const tokens = resData.usage?.output_tokens || 350;
+
+          statsLabel.textContent = `Latency: ${latency} ms | Tokens: ${tokens} | API: Live Claude`;
+          renderDiagnosticOutput(rawText, machine);
+
+        } else {
+          // BUILT-IN INTELLIGENT SIMULATOR (ZERO LATENCY DEPENDENCY / SLIDE-ACCURATE)
+          await new Promise(r => setTimeout(r, 1100)); // realistic latency
+          const latency = Math.round(performance.now() - startTime);
+          const simulatedResponse = generateSmartDiagnosticReport(targetKey, machine, payloadData.matchedSOPs);
+          statsLabel.textContent = `Latency: ${latency} ms | Tokens: ~420 | Engine: Built-in Claude Simulator`;
+          renderDiagnosticOutput(simulatedResponse, machine);
+        }
+
+        terminalHeader.textContent = "DIAGNOSIS COMPLETE";
+        statusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
+
+      } catch (err) {
+        console.error("Diagnosis error:", err);
+        terminalHeader.textContent = "INFERENCE FAILED";
+        statusDot.className = "w-2 h-2 rounded-full bg-red-400";
+        terminalBody.innerHTML = `
+          <div class="p-3 rounded-lg bg-red-950/40 border border-red-500/40 text-xs font-mono text-red-300 space-y-1">
+            <div class="font-bold flex items-center gap-1.5">
+              <span>⚠️ Claude API Request Error:</span>
+            </div>
+            <div>${err.message}</div>
+            <div class="text-[11px] text-slate-400 pt-1">
+              Tip: Switch to "Built-in Offline Simulator" in API settings for instantaneous offline demonstrations.
+            </div>
+          </div>
+        `;
+      } finally {
+        runBtn.disabled = false;
+        runSpinner.classList.add('hidden');
+        runText.textContent = "🚀 Execute AI Foundation Model Diagnosis";
+      }
+    }
+
+    function generateSmartDiagnosticReport(targetKey, machine, matchedSOPs) {
+      const isBearing = machine.fault === "bearing";
+      const isMisaligned = machine.fault === "misalignment";
+      const isImbalance = machine.fault === "imbalance";
+      const isThermal = machine.fault === "thermal";
+      const isCavitation = machine.fault === "cavitation";
+
+      let severity = "NORMAL (HEALTHY)";
+      let severityColor = "emerald";
+      let rootCause = "No active mechanical faults detected. All sensor trends remain within ISO 10816 Zone A nominal parameters.";
+      let safeWindow = "> 2,500 Continuous Operating Hours";
+      let sopProtocol = [
+        "Maintain routine continuous vibration and thermographic monitoring.",
+        "Verify automated lubrication levels at the next 500-hour preventive cycle."
+      ];
+
+      if (isBearing) {
+        severity = "CRITICAL (IMMEDIATE SHUTDOWN ADVISED)";
+        severityColor = "red";
+        rootCause = "Severe Inner/Outer Race Fatigue Spallation (ISO 10816-3 Zone D). Characteristic high-frequency acceleration spikes with acoustic kurtosis > 3.8 indicate catastrophic bearing failure imminent.";
+        safeWindow = "< 4 to 8 Operating Hours before cage seizure";
+        sopProtocol = [
+          "Initiate emergency controlled spindle spindown to prevent tool holder and ceramic spindle core scoring.",
+          "Perform Lockout/Tagout (LOTO) on Bay 02 CNC Spindle.",
+          "Disassemble front spindle bearing housing and verify BPFO defect frequency harmonics.",
+          "Install new matched angular contact ceramic hybrid bearing pair (Pre-load: 450N, Klüber NBU 15 synthetic grease)."
+        ];
+      } else if (isMisaligned) {
+        severity = "WARNING (ELEVATED RISK - ISO ZONE C)";
+        severityColor = "amber";
+        rootCause = "Angular & Parallel Shaft Misalignment across motor-gearbox flexible coupling. High 2X RPM harmonic energy and motor drive-end thermal buildup confirm coupling offset.";
+        safeWindow = "< 48 Operating Hours before coupling bushing destruction";
+        sopProtocol = [
+          "Inspect flexible elastomer spider insert for micro-cracks and thermal fatigue.",
+          "Mount dual-axis laser alignment sensors across motor and conveyor drive shafts.",
+          "Apply corrective 0.15mm stainless shims under rear motor feet to eliminate soft-foot condition.",
+          "Torque foundation hold-down bolts to OEM specification (120 Nm)."
+        ];
+      } else if (isImbalance) {
+        severity = "WARNING (DYNAMIC IMBALANCE DETECTED)";
+        severityColor = "yellow";
+        rootCause = "Dynamic Rotor Unbalance (ISO 1940 Grade G2.5 exceeded). Pure 1X rotational frequency sinusoidal peak indicates mass eccentricity on rotor / tool arbor.";
+        safeWindow = "< 72 Operating Hours before accelerated seal wear occurs";
+        sopProtocol = [
+          "Stop spindle and inspect tool taper and chuck jaws for metal chips and swarf buildup.",
+          "Clean spindle bore with dedicated wiper cone.",
+          "Mount magnetic accelerometer and optical tachometer for dynamic dual-plane field balancing.",
+          "Attach corrective brass counter-balance grub screws until 1X vibration drops below 1.2 mm/s."
+        ];
+      } else if (isThermal) {
+        severity = "CRITICAL (THERMAL OVERLOAD - TRIP IMMINENT)";
+        severityColor = "orange";
+        rootCause = "Compressor Air-End Heat Exchanger Fouling & Thermal Boundary Violation. Discharge temperature exceeding 95°C threatens synthetic oil oxidation and stator winding degradation.";
+        safeWindow = "< 30 Minutes before automated high-temperature shutdown trip";
+        sopProtocol = [
+          "Unload compressor immediately to drop internal heat generation.",
+          "Inspect radiator cooling matrix; blow out dust and oily residue with dry nitrogen.",
+          "Check cooling fan motor contactor and thermostatic bypass valve opening angle.",
+          "Verify lubricant level in sight glass and check for thermal discoloration."
+        ];
+      } else if (isCavitation) {
+        severity = "WARNING (SUCTION CAVITATION & TURBULENCE)";
+        severityColor = "blue";
+        rootCause = "Vapor Bubble Implosion & Suction Starvation. High-frequency acoustic hiss and pressure fluctuations indicate inadequate NPSH margin or throttled intake.";
+        safeWindow = "< 24 Operating Hours before impeller vane erosion occurs";
+        sopProtocol = [
+          "Inspect suction intake strainer for foreign particulate clogging.",
+          "Verify fully open position of pneumatic modulation suction valve.",
+          "Check lubricant foaming index and anti-foaming additive concentration.",
+          "Calibrate suction differential pressure sensor."
+        ];
+      }
+
+      // Format markdown string
+      return `### 🚨 Diagnostic Assessment: <span class="text-${severityColor}-400 font-bold">${severity}</span>
+
+**Asset:** ${machine.name} (\`${machine.id}\`)  
+**ISO Classification:** ISO 10816 Mechanical Vibration Severity Guidelines
+
+---
+
+#### 📊 Telemetry Evidence Correlation
+- **Observed Vibration:** \`${machine.vibration.toFixed(2)} mm/s\` (${machine.vibration > 4.5 ? "⚠️ CRITICAL EXCEEDANCE" : "Nominal Envelope"})
+- **Core Operating Temp:** \`${machine.temp.toFixed(1)}°C\` (${machine.temp > 80 ? "⚠️ THERMAL EXCEEDANCE" : "Normal thermal gradient"})
+- **Primary Kinetic Indicator:** ${machine.kurtosis ? `Acoustic Kurtosis \`${machine.kurtosis.toFixed(2)}\`` : `Operational Speed \`${machine.rpm} RPM\``}
+
+---
+
+#### 🔬 Root Cause Analysis (Mini-RAG Correlated)
+${rootCause}
+
+*Correlated SOP:* **${matchedSOPs[0]?.title || "ISO Maintenance Standard"}**
+
+---
+
+#### 🛠️ Recommended Corrective Maintenance Protocol
+${sopProtocol.map((s, idx) => `${idx + 1}. ${s}`).join("\n")}
+
+⏱️ **Safe Residual Run Window:** \`${safeWindow}\``;
+    }
+
+    function renderDiagnosticOutput(markdownText, machine) {
+      const container = document.getElementById('diagnosticTerminalBody');
+      // Simple custom markdown renderer for clean presentation
+      let html = markdownText
+        .replace(/### (.*)/g, '<h3 class="text-sm font-bold text-slate-100 font-mono mt-1 mb-2">$1</h3>')
+        .replace(/#### (.*)/g, '<h4 class="text-xs font-bold text-brand-400 font-mono mt-3 mb-1 uppercase tracking-wide">$1</h4>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em class="text-slate-400">$1</em>')
+        .replace(/`([^`]+)`/g, '<code class="bg-dark-900 border border-dark-700 text-brand-300 px-1 py-0.5 rounded text-[11px] font-mono">$1</code>')
+        .replace(/\n\n/g, '<br/>')
+        .replace(/---/g, '<hr class="border-dark-800 my-2"/>');
+
+      container.innerHTML = `<div class="space-y-1">${html}</div>`;
+    }
+
+    function setQueryPreset(type) {
+      const input = document.getElementById('engineerPromptInput');
+      if (type === 'vibration') {
+        input.value = "Analyze the recent vibration drift against ISO 10816 vibration tolerance limits and identify mechanical unbalance vs bearing defect frequencies.";
+      } else if (type === 'bearing') {
+        input.value = "Evaluate acoustic kurtosis and high-frequency vibration signals for signs of inner race or outer race bearing fatigue and compute remaining useful life (RUL).";
+      } else if (type === 'overheat') {
+        input.value = "Determine if current thermal rise exceeds NEMA insulation class limits and identify whether cooling airflow restriction or electrical winding failure is responsible.";
+      }
+      updatePromptPipelinePreview();
+    }
+
+    function onTargetMachineChange() {
+      currentSelectedTarget = document.getElementById('diagnosticTargetSelect').value;
+      updatePromptPipelinePreview();
+    }
+
+    function diagnoseMachine(machineKey) {
+      document.getElementById('diagnosticTargetSelect').value = machineKey;
+      currentSelectedTarget = machineKey;
+      updatePromptPipelinePreview();
+      runClaudeDiagnosis();
+      // Scroll to diagnosis console smoothly
+      document.getElementById('runDiagnosticBtn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    /* ============================================================
+       9. SIMULATION CONTROLS & AUDIO ALERTS
+       ============================================================ */
+    function toggleSimulation() {
+      simActive = !simActive;
+      const btnText = document.getElementById('simStateText');
+      const dot = document.querySelector('#simToggleBtn span');
+
+      if (simActive) {
+        btnText.textContent = "SIMULATING";
+        dot.className = "w-2 h-2 rounded-full bg-brand-400 animate-pulse";
+        startSimulationTimer();
+      } else {
+        btnText.textContent = "PAUSED";
+        dot.className = "w-2 h-2 rounded-full bg-slate-500";
+        clearInterval(simInterval);
+      }
+    }
+
+    function setSimSpeed(mult) {
+      simSpeed = mult;
+      ['spd1', 'spd2', 'spd5'].forEach(id => {
+        document.getElementById(id).className = "px-2 py-1 rounded text-slate-400 hover:text-white";
+      });
+      document.getElementById(`spd${mult}`).className = "px-2 py-1 rounded bg-dark-800 text-brand-400 font-semibold";
+      document.getElementById('sampleRateLabel').textContent = `${(1.0 * mult).toFixed(1)} Hz`;
+
+      if (simActive) {
+        clearInterval(simInterval);
+        startSimulationTimer();
+      }
+    }
+
+    function startSimulationTimer() {
+      const delay = Math.round(1000 / simSpeed);
+      simInterval = setInterval(updateSimulationStep, delay);
+    }
+
+    function toggleAudio() {
+      audioAlertEnabled = !audioAlertEnabled;
+      const label = document.getElementById('audioLabel');
+      const icon = document.getElementById('audioIcon');
+
+      if (audioAlertEnabled) {
+        label.textContent = "AUDIO: ON";
+        icon.classList.remove('text-slate-400');
+        icon.classList.add('text-brand-400');
+        playBeepAlert(600, 0.1); // test chime
+      } else {
+        label.textContent = "AUDIO: OFF";
+        icon.classList.add('text-slate-400');
+        icon.classList.remove('text-brand-400');
+      }
+    }
+
+    function playBeepAlert(freq = 880, duration = 0.25) {
+      try {
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+        gain.gain.setValueAtTime(0.08, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start();
+        osc.stop(audioContext.currentTime + duration);
+      } catch (e) {
+        console.warn("Audio playback not permitted yet:", e);
+      }
+    }
+
+    /* ============================================================
+       10. CLOUD COMPUTING TABS
+       ============================================================ */
+    function setCloudTab(tab) {
+      const dView = document.getElementById('cloudDiagramView');
+      const tView = document.getElementById('cloudTableView');
+      const bDiag = document.getElementById('tabBtnDiagram');
+      const bTab = document.getElementById('tabBtnTable');
+
+      if (tab === 'diagram') {
+        dView.classList.remove('hidden');
+        tView.classList.add('hidden');
+        bDiag.className = "px-3 py-1.5 rounded-md bg-purple-500/20 text-purple-300 font-semibold";
+        bTab.className = "px-3 py-1.5 rounded-md text-slate-400 hover:text-white";
+      } else {
+        dView.classList.add('hidden');
+        tView.classList.remove('hidden');
+        bTab.className = "px-3 py-1.5 rounded-md bg-purple-500/20 text-purple-300 font-semibold";
+        bDiag.className = "px-3 py-1.5 rounded-md text-slate-400 hover:text-white";
+      }
+    }
+
+    /* ============================================================
+       11. MODALS & REPORT GENERATOR
+       ============================================================ */
+    function openKnowledgeBaseModal() {
+      const list = document.getElementById('fullKbList');
+      list.innerHTML = KNOWLEDGE_BASE.map(doc => `
+        <div class="bg-dark-900 p-3.5 rounded-xl border border-dark-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-mono font-bold text-cyan-300">${doc.title}</h4>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-dark-800 text-slate-400 border border-dark-700">${doc.id.toUpperCase()}</span>
+          </div>
+          <div class="text-[11px] text-slate-300 space-y-1 font-mono">
+            <div><strong class="text-slate-400">Assets:</strong> ${doc.machineType}</div>
+            <div><strong class="text-slate-400">Symptoms:</strong> ${doc.symptoms}</div>
+            <div><strong class="text-amber-400">Root Cause:</strong> ${doc.rootCause}</div>
+            <div><strong class="text-emerald-400">SOP Action:</strong> ${doc.correctiveAction}</div>
+          </div>
+          <div class="flex flex-wrap gap-1 pt-1">
+            ${doc.keywords.map(kw => `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-dark-950 text-slate-400 border border-dark-800">${kw}</span>`).join('')}
+          </div>
+        </div>
+      `).join('');
+      document.getElementById('kbModal').classList.remove('hidden');
+    }
+
+    function closeKnowledgeBaseModal() {
+      document.getElementById('kbModal').classList.add('hidden');
+    }
+
+    function openConfigModal() {
+      document.getElementById('configModal').classList.remove('hidden');
+    }
+
+    function closeConfigModal() {
+      document.getElementById('configModal').classList.add('hidden');
+    }
+
+    function setEngineMode(mode) {
+      engineMode = mode;
+      const bSim = document.getElementById('engineSimulatorBtn');
+      const bLive = document.getElementById('engineLiveBtn');
+      const inputWrap = document.getElementById('apiKeyInputWrapper');
+
+      if (mode === 'simulator') {
+        bSim.className = "p-2.5 rounded-lg border text-left transition border-brand-500 bg-brand-500/10 text-brand-400 font-semibold";
+        bLive.className = "p-2.5 rounded-lg border text-left transition border-dark-700 bg-dark-900 text-slate-400";
+        inputWrap.classList.add('opacity-50', 'pointer-events-none');
+        document.getElementById('apiIndicatorLabel').textContent = "Claude API (Simulator)";
+      } else {
+        bLive.className = "p-2.5 rounded-lg border text-left transition border-indigo-500 bg-indigo-500/10 text-indigo-400 font-semibold";
+        bSim.className = "p-2.5 rounded-lg border text-left transition border-dark-700 bg-dark-900 text-slate-400";
+        inputWrap.classList.remove('opacity-50', 'pointer-events-none');
+        document.getElementById('apiIndicatorLabel').textContent = "Claude API (Live Direct)";
+      }
+    }
+
+    function saveApiConfig() {
+      anthropicApiKey = document.getElementById('anthropicApiKeyInput').value.trim();
+      closeConfigModal();
+    }
+
+    function exportIncidentReport() {
+      const printArea = document.getElementById('reportPrintArea');
+      const cmp = machines.compressor;
+      const spn = machines.spindle;
+      const cnv = machines.conveyor;
+      const now = new Date().toISOString();
+
+      printArea.innerHTML = `
+        <div class="border-b border-dark-700 pb-3 mb-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-brand-400">MACHINESENSE INDUSTRIAL INCIDENT LOG</h2>
+            <span class="text-[10px] text-slate-500">ISO-9001 COMPLIANT</span>
+          </div>
+          <div class="text-[11px] text-slate-400 mt-1">
+            Timestamp: ${now} | Engineer: Reliability Operations Team
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <h3 class="text-xs font-bold text-slate-200">1. Real-Time Telemetry Snapshot</h3>
+          <div class="grid grid-cols-3 gap-2 text-[10px] bg-dark-900 p-2.5 rounded-lg border border-dark-800">
+            <div>
+              <div class="font-bold text-slate-300">Atlas Compressor</div>
+              <div>Temp: ${cmp.temp.toFixed(1)}°C</div>
+              <div>Vib: ${cmp.vibration.toFixed(2)} mm/s</div>
+              <div>Status: ${cmp.status.toUpperCase()}</div>
+            </div>
+            <div>
+              <div class="font-bold text-slate-300">CNC Milling Spindle</div>
+              <div>Temp: ${spn.temp.toFixed(1)}°C</div>
+              <div>Vib: ${spn.vibration.toFixed(2)} mm/s</div>
+              <div>Kurtosis: ${spn.kurtosis.toFixed(2)}</div>
+              <div>Status: ${spn.status.toUpperCase()}</div>
+            </div>
+            <div>
+              <div class="font-bold text-slate-300">Conveyor Drive Motor</div>
+              <div>Temp: ${cnv.temp.toFixed(1)}°C</div>
+              <div>Vib: ${cnv.vibration.toFixed(2)} mm/s</div>
+              <div>Current: ${cnv.current.toFixed(1)}A</div>
+              <div>Status: ${cnv.status.toUpperCase()}</div>
+            </div>
+          </div>
+
+          <h3 class="text-xs font-bold text-slate-200">2. Active Fault & Mini-RAG Ingestion</h3>
+          <div class="text-[11px] text-slate-300 bg-dark-900 p-2.5 rounded-lg border border-dark-800">
+            <div>Target Machine: <strong>${machines[currentSelectedTarget].name} (${machines[currentSelectedTarget].id})</strong></div>
+            <div>Active Anomaly: <strong>${machines[currentSelectedTarget].fault || "None (Nominal Operation)"}</strong></div>
+            <div class="mt-1 text-cyan-400">Retrieved SOP: ${retrieveRelevantDocs(currentSelectedTarget, "")[0]?.title}</div>
+          </div>
+
+          <h3 class="text-xs font-bold text-slate-200">3. Cloud System Deployment Topology</h3>
+          <div class="text-[10px] text-slate-400 bg-dark-900 p-2.5 rounded-lg border border-dark-800 leading-normal">
+            <div>• IaaS: On-Prem Industrial PC Gateways collecting 1kHz sensor frames via Modbus TCP.</div>
+            <div>• PaaS: AWS IoT Core ingest pipeline forwarding to Amazon Timestream & Pinecone Vector Store.</div>
+            <div>• MaaS: Anthropic Claude 3.5 Sonnet foundation model executing automated RCA inferences.</div>
+          </div>
+        </div>
+      `;
+      document.getElementById('reportModal').classList.remove('hidden');
+    }
+
+    function closeReportModal() {
+      document.getElementById('reportModal').classList.add('hidden');
+    }
+
+    /* ============================================================
+       12. APPLICATION BOOTSTRAP
+       ============================================================ */
+    window.addEventListener('DOMContentLoaded', () => {
+      initCharts();
+      renderTelemetryUI();
+      updatePromptPipelinePreview();
+      startSimulationTimer();
+
+      // Listen for engineer textarea input for dynamic RAG updates
+      document.getElementById('engineerPromptInput').addEventListener('input', () => {
+        updatePromptPipelinePreview();
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+# EchoCall Django Project Init

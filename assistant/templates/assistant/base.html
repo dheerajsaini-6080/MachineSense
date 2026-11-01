@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EchoCall AI - Autonomous Voice Calling & Django Analytics{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 500: '#06b6d4', 600: '#0284c7' },
+                        ai: { purple: '#8b5cf6', cyan: '#06b6d4', emerald: '#10b981', amber: '#f59e0b' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #090d16; color: #f8fafc; }
+        .glass-panel { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glass-card { background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.07); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        .glass-card-interactive { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .glass-card-interactive:hover { transform: translateY(-3px); border-color: rgba(6, 182, 212, 0.3); box-shadow: 0 12px 36px 0 rgba(6, 182, 212, 0.15); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-cyan-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-30 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3.5 shadow-2xl">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+                <a href="{% url 'dashboard' %}" class="flex items-center gap-3">
+                    <div class="relative flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 shadow-lg shadow-cyan-500/25">
+                        <i class="fa-solid fa-phone-volume text-white text-lg animate-pulse"></i>
+                        <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                        </span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight text-white">
+                            Echo<span class="text-cyan-400">Call</span> <span class="text-xs uppercase tracking-widest px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-mono">Django Backend</span>
+                        </h1>
+                        <p class="text-xs text-slate-400 font-medium">Retell AI & Vapi Mobile Phone Voice Platform</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a href="{% url 'admin:index' %}" target="_blank" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+                    <i class="fa-solid fa-database text-cyan-400"></i>
+                    <span>Django Admin</span>
+                </a>
+                <a href="{% url 'create_schedule' %}" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+                    <i class="fa-regular fa-clock text-indigo-400"></i>
+                    <span>Schedule Call</span>
+                </a>
+                <a href="{% url 'create_script' %}" class="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white shadow-lg shadow-cyan-500/20 transition">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span>New Campaign</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Flash Messages Notification Toast -->
+    {% if messages %}
+        <div class="max-w-7xl mx-auto px-4 lg:px-8 mt-4">
+            {% for message in messages %}
+                <div class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-cyan-500/40 text-cyan-300 text-xs font-semibold shadow-xl mb-2">
+                    <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+                    <span>{{ message }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Main Body Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- App Footer -->
+    <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500 font-medium mt-12">
+        <p>EchoCall AI • 100% Pure Python & Django Mobile Phone Voice Platform</p>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

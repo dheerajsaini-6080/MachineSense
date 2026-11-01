@@ -1,0 +1,62 @@
+{% extends 'assistant/base.html' %}
+
+{% block title %}Create Custom AI Campaign - EchoCall AI{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto glass-card rounded-3xl p-6 border border-purple-500/30 shadow-2xl">
+    <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
+        <div>
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-purple-400"></i> Create Custom AI Campaign
+            </h2>
+            <p class="text-xs text-slate-400 mt-0.5">Design a new voice campaign with customized AI prompts and questions</p>
+        </div>
+        <a href="{% url 'dashboard' %}" class="text-xs text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></a>
+    </div>
+
+    <form method="POST" class="space-y-4 text-xs">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block font-semibold text-slate-300 mb-1">Campaign Title *</label>
+                {{ form.title }}
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-300 mb-1">Category</label>
+                {{ form.category }}
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-300 mb-1">Recipient Name</label>
+                {{ form.recipient_name }}
+            </div>
+            <div>
+                <label class="block font-semibold text-slate-300 mb-1">Mobile Phone Number</label>
+                {{ form.phone_number }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block font-semibold text-slate-300 mb-1">Campaign Description</label>
+            {{ form.description }}
+        </div>
+
+        <div>
+            <label class="block font-semibold text-slate-300 mb-1">AI Opening Spoken Greeting</label>
+            {{ form.greeting }}
+        </div>
+
+        <div>
+            <label class="block font-semibold text-slate-300 mb-1">AI Closing Sign-off</label>
+            {{ form.closing_message }}
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+            <a href="{% url 'dashboard' %}" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold">Cancel</a>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-purple-600/20">
+                <i class="fa-solid fa-save me-1"></i> Save Custom Campaign
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

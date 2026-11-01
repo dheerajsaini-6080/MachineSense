@@ -14,19 +14,28 @@ from .services.vapi_service import VapiVoiceService
 from .services.mock_service import MockCallService
 
 def dashboard_view(request):
-    scenarios = CampaignScenario.objects.all().prefetch_related('questions')
-    logs = CallLog.objects.all().prefetch_related('transcripts')[:50]
-    schedules = ScheduledCall.objects.filter(status='Pending')
-    config = TelephonyConfig.get_config()
+    try:
+        scenarios = CampaignScenario.objects.all().prefetch_related('questions')
+        logs = CallLog.objects.all().prefetch_related('transcripts')[:50]
+        schedules = ScheduledCall.objects.filter(status='Pending')
+        config = TelephonyConfig.get_config()
 
-    total_calls = CallLog.objects.count()
-    completed_calls = CallLog.objects.filter(status='Completed').count()
-    success_rate = round((completed_calls / total_calls) * 100) if total_calls > 0 else 100
+        total_calls = CallLog.objects.count()
+        completed_calls = CallLog.objects.filter(status='Completed').count()
+        success_rate = round((completed_calls / total_calls) * 100) if total_calls > 0 else 100
 
-    positive_calls = CallLog.objects.filter(sentiment='Positive').count()
-    positive_rate = round((positive_calls / total_calls) * 100) if total_calls > 0 else 0
+        positive_calls = CallLog.objects.filter(sentiment='Positive').count()
+        positive_rate = round((positive_calls / total_calls) * 100) if total_calls > 0 else 0
 
-    pending_schedules = schedules.count()
+        pending_schedules = schedules.count()
+        trigger_form = TriggerCallForm()
+        config_form = TelephonyConfigForm(instance=config)
+    except Exception:
+        scenarios, logs, schedules = [], [], []
+        total_calls, completed_calls, success_rate, positive_calls, positive_rate, pending_schedules = 0, 0, 100, 0, 0, 0
+        trigger_form = None
+        config = None
+        config_form = None
 
     context = {
         'scenarios': scenarios,
@@ -36,9 +45,9 @@ def dashboard_view(request):
         'success_rate': success_rate,
         'positive_rate': positive_rate,
         'pending_schedules': pending_schedules,
-        'trigger_form': TriggerCallForm(),
+        'trigger_form': trigger_form,
         'config': config,
-        'config_form': TelephonyConfigForm(instance=config)
+        'config_form': config_form
     }
 
     return render(request, 'assistant/dashboard.html', context)

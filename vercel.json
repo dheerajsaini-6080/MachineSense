@@ -1,4 +1,15 @@
 {
   "version": 2,
-  "cleanUrls": true
+  "builds": [
+    {
+      "src": "echocall/wsgi.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "echocall/wsgi.py"
+    }
+  ]
 }

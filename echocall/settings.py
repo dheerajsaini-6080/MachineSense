@@ -49,10 +49,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'echocall.wsgi.application'
 
+if os.environ.get('VERCEL') or os.environ.get('AWS_LAMBDA_FUNCTION_NAME'):
+    db_path = Path('/tmp') / 'db.sqlite3'
+else:
+    db_path = BASE_DIR / 'db.sqlite3'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': db_path,
     }
 }
 

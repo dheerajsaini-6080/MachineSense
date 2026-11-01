@@ -2,7 +2,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.dashboard_view, name='dashboard'),
+    path('', views.machinesense_view, name='home'),
+    path('machinesense/', views.machinesense_view, name='machinesense'),
+    path('voice-dashboard/', views.dashboard_view, name='dashboard'),
     path('trigger-call/', views.trigger_call_view, name='trigger_call'),
     path('save-telephony-config/', views.save_telephony_config_view, name='save_telephony_config'),
     path('log/<int:log_id>/', views.log_detail_view, name='log_detail'),
